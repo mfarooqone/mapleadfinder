@@ -1,0 +1,179 @@
+name: lead_outreach_platform
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    networks:
+      internal:
+        aliases:
+          - leadoutreach-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-leadoutreach}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/.env}
+      POSTGRES_DB: ${POSTGRES_DB:-lead_outreach}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-leadoutreach} -d ${POSTGRES_DB:-lead_outreach}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    networks:
+      internal:
+        aliases:
+          - leadoutreach-redis
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+      - traefik
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-leadoutreach}:${POSTGRES_PASSWORD}@leadoutreach-postgres:5432/${POSTGRES_DB:-lead_outreach}?schema=public
+      DATABASE_ADMIN_URL: postgresql://${POSTGRES_USER:-leadoutreach}:${POSTGRES_PASSWORD}@leadoutreach-postgres:5432/${POSTGRES_DB:-lead_outreach}?schema=public
+      REDIS_HOST: leadoutreach-redis
+      REDIS_PORT: 6379
+      WAHA_BASE_URL: http://waha:3000
+      WAHA_BASE_URL_FAROOQ: http://waha:3000
+      WAHA_BASE_URL_KHALIL: http://waha_khalil:3000
+      WAHA_BASE_URL_REHMAN: http://waha_rehman:3000
+    volumes:
+      - baileys_sessions:/app/sessions/baileys
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK:-traefik_public}
+      - traefik.http.routers.lead-outreach-api.rule=Host(`${API_SUBDOMAIN}.${DOMAIN_NAME}`)
+      - traefik.http.routers.lead-outreach-api.tls=true
+      - traefik.http.routers.lead-outreach-api.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
+      - traefik.http.routers.lead-outreach-api.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-mytlschallenge}
+      - traefik.http.services.lead-outreach-api.loadbalancer.server.port=3001
+
+  web:
+    build:
+      context: ../apps/web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks:
+      - traefik
+    environment:
+      BACKEND_API_BASE_URL: http://api:3001
+      NEXT_PUBLIC_API_BASE_URL: /api/backend
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK:-traefik_public}
+      - traefik.http.routers.lead-outreach-web.rule=Host(`${APP_SUBDOMAIN}.${DOMAIN_NAME}`)
+      - traefik.http.routers.lead-outreach-web.tls=true
+      - traefik.http.routers.lead-outreach-web.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
+      - traefik.http.routers.lead-outreach-web.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-mytlschallenge}
+      - traefik.http.services.lead-outreach-web.loadbalancer.server.port=3000
+
+  waha:
+    image: devlikeapro/waha:latest
+    restart: unless-stopped
+    shm_size: "512mb"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    environment:
+      WHATSAPP_DEFAULT_ENGINE: GOWS
+      GODEBUG: netdns=go
+      WHATSAPP_HOOK_URL: "${PUBLIC_API_URL}/webhooks/whatsapp/waha?userId=user-farooq"
+      WHATSAPP_HOOK_EVENTS: message,message.ack,session.status
+      WAHA_API_KEY: ${WAHA_API_KEY:-}
+      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USERNAME:-admin}
+      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD:?Set WAHA_DASHBOARD_PASSWORD in deploy/.env}
+    volumes:
+      - waha_sessions:/app/.sessions
+    networks:
+      - internal
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK:-traefik_public}
+      - traefik.http.routers.lead-outreach-waha.rule=Host(`${WAHA_SUBDOMAIN}.${DOMAIN_NAME}`)
+      - traefik.http.routers.lead-outreach-waha.tls=true
+      - traefik.http.routers.lead-outreach-waha.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
+      - traefik.http.routers.lead-outreach-waha.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-mytlschallenge}
+      - traefik.http.services.lead-outreach-waha.loadbalancer.server.port=3000
+
+  waha_khalil:
+    image: devlikeapro/waha:latest
+    restart: unless-stopped
+    shm_size: "512mb"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    environment:
+      WHATSAPP_DEFAULT_ENGINE: GOWS
+      GODEBUG: netdns=go
+      WHATSAPP_HOOK_URL: "${PUBLIC_API_URL}/webhooks/whatsapp/waha?userId=user-khalil"
+      WHATSAPP_HOOK_EVENTS: message,message.ack,session.status
+      WAHA_API_KEY: ${WAHA_API_KEY:-}
+      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USERNAME:-admin}
+      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD:?Set WAHA_DASHBOARD_PASSWORD in deploy/.env}
+    volumes:
+      - waha_khalil_sessions:/app/.sessions
+    networks:
+      - internal
+
+  waha_rehman:
+    image: devlikeapro/waha:latest
+    restart: unless-stopped
+    shm_size: "512mb"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    environment:
+      WHATSAPP_DEFAULT_ENGINE: GOWS
+      GODEBUG: netdns=go
+      WHATSAPP_HOOK_URL: "${PUBLIC_API_URL}/webhooks/whatsapp/waha?userId=user-rehman"
+      WHATSAPP_HOOK_EVENTS: message,message.ack,session.status
+      WAHA_API_KEY: ${WAHA_API_KEY:-}
+      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USERNAME:-admin}
+      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD:?Set WAHA_DASHBOARD_PASSWORD in deploy/.env}
+    volumes:
+      - waha_rehman_sessions:/app/.sessions
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+  redis_data:
+  baileys_sessions:
+  waha_sessions:
+  waha_khalil_sessions:
+  waha_rehman_sessions:
+
+networks:
+  internal:
+    name: lead_outreach_internal
+  traefik:
+    external: true
+    name: ${TRAEFIK_NETWORK:-traefik_public}
