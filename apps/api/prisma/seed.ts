@@ -1,9 +1,5 @@
 import { PrismaPg } from '@prisma/adapter-pg';
-import {
-  PrismaClient,
-  UserRole,
-} from '@prisma/client';
-import { randomBytes, scryptSync } from 'crypto';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({
@@ -13,78 +9,81 @@ const prisma = new PrismaClient({
   }),
 });
 
-const users = [
-  {
-    id: 'user-farooq',
-    username: 'farooq',
-    name: 'Farooq',
-    email: 'farooq@leadoutreach.local',
-    password: process.env.FAROOQ_PASSWORD ?? 'farooq123',
-    role: UserRole.ADMIN,
-  },
-  {
-    id: 'user-khalil',
-    username: 'khalil',
-    name: 'Khalil',
-    email: 'khalil@leadoutreach.local',
-    password: process.env.KHALIL_PASSWORD ?? 'khalil123',
-    role: UserRole.USER,
-  },
-  {
-    id: 'user-rehman',
-    username: 'rehman',
-    name: 'Rehman',
-    email: 'rehman@leadoutreach.local',
-    password: process.env.REHMAN_PASSWORD ?? 'rehman123',
-    role: UserRole.USER,
-  },
-  {
-    id: 'user-saud',
-    username: 'saud',
-    name: 'Saud',
-    email: 'saud@leadoutreach.local',
-    password: process.env.SAUD_PASSWORD ?? 'saud123',
-    role: UserRole.USER,
-  },
-] as const;
+const legacyUserIds = [
+  'user-farooq',
+  'user-khalil',
+  'user-rehman',
+  'user-saud',
+];
 
-function hashPassword(password: string) {
-  const salt = randomBytes(16).toString('hex');
-  const hash = scryptSync(password, salt, 64).toString('hex');
-  return `${salt}:${hash}`;
-}
+const legacyEmails = [
+  'farooq@leadoutreach.local',
+  'khalil@leadoutreach.local',
+  'rehman@leadoutreach.local',
+  'saud@leadoutreach.local',
+];
 
 async function main() {
-  for (const user of users) {
-    await prisma.user.upsert({
-      where: {
-        id: user.id,
-      },
-      update: {
-        username: user.username,
-        name: user.name,
-        email: user.email,
-        passwordHash: hashPassword(user.password),
-        role: user.role,
-        isActive: true,
-        emailVerifiedAt: new Date(),
-        licenseExpiresAt: null,
-      },
-      create: {
-        id: user.id,
-        username: user.username,
-        name: user.name,
-        email: user.email,
-        passwordHash: hashPassword(user.password),
-        role: user.role,
-        isActive: true,
-        emailVerifiedAt: new Date(),
-        licenseExpiresAt: null,
-      },
-    });
-  }
+  const [
+    signupVerifications,
+    passwordResetVerifications,
+    jobs,
+    conversations,
+    templates,
+    scrapeBatches,
+    decisionMakers,
+    leads,
+    emailMessages,
+    emailCampaigns,
+    smtpSettings,
+    aiSettings,
+    mailboxSettings,
+    outreachStats,
+    whatsAppAccounts,
+    users,
+  ] = await prisma.$transaction([
+    prisma.signupVerification.deleteMany({
+      where: { email: { in: legacyEmails } },
+    }),
+    prisma.passwordResetVerification.deleteMany({
+      where: { email: { in: legacyEmails } },
+    }),
+    prisma.job.deleteMany({ where: { userId: { in: legacyUserIds } } }),
+    prisma.conversation.deleteMany({ where: { userId: { in: legacyUserIds } } }),
+    prisma.template.deleteMany({ where: { userId: { in: legacyUserIds } } }),
+    prisma.scrapeBatch.deleteMany({ where: { userId: { in: legacyUserIds } } }),
+    prisma.leadDecisionMaker.deleteMany({
+      where: { userId: { in: legacyUserIds } },
+    }),
+    prisma.lead.deleteMany({ where: { userId: { in: legacyUserIds } } }),
+    prisma.emailMessage.deleteMany({ where: { userId: { in: legacyUserIds } } }),
+    prisma.emailCampaign.deleteMany({ where: { userId: { in: legacyUserIds } } }),
+    prisma.emailSmtpSettings.deleteMany({
+      where: { userId: { in: legacyUserIds } },
+    }),
+    prisma.emailAiSettings.deleteMany({
+      where: { userId: { in: legacyUserIds } },
+    }),
+    prisma.emailMailboxSettings.deleteMany({
+      where: { userId: { in: legacyUserIds } },
+    }),
+    prisma.outreachDailyStats.deleteMany({
+      where: { userId: { in: legacyUserIds } },
+    }),
+    prisma.whatsAppAccount.deleteMany({
+      where: { userId: { in: legacyUserIds } },
+    }),
+    prisma.user.deleteMany({ where: { id: { in: legacyUserIds } } }),
+  ]);
 
-  console.log('Seeded fixed login accounts: farooq, khalil, rehman, saud.');
+  console.log(
+    [
+      `Removed ${users.count} legacy fixed login account(s).`,
+      `Cleaned account data: ${leads.count} lead(s), ${conversations.count} conversation(s), ${jobs.count} job(s), ${whatsAppAccounts.count} WhatsApp account(s).`,
+      `Email signup is the only account creation path. Pending legacy verifications removed: signup=${signupVerifications.count}, passwordReset=${passwordResetVerifications.count}.`,
+      `Other removed records: templates=${templates.count}, scrapeBatches=${scrapeBatches.count}, decisionMakers=${decisionMakers.count}, emailMessages=${emailMessages.count}, emailCampaigns=${emailCampaigns.count}, smtpSettings=${smtpSettings.count}, aiSettings=${aiSettings.count}, mailboxSettings=${mailboxSettings.count}, outreachStats=${outreachStats.count}.`,
+    ].join(' '),
+  );
 }
 
 main()
@@ -93,6 +92,5 @@ main()
   })
   .catch(async (error) => {
     console.error(error);
-    await prisma.$disconnect();
-    process.exit(1);
+    prisma.$disconnect().finally(() => process.exit(1));
   });

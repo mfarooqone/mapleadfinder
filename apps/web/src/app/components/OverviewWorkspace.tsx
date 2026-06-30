@@ -173,7 +173,7 @@ export default function OverviewWorkspace() {
         <StatusBanner banner={banner} />
 
         <DashboardHero
-          userName={authUser?.name ?? authUser?.username}
+          userName={authUser?.name ?? authUser?.email}
           connected={connected}
           linkedPhone={linkedPhone}
           envReady={Boolean(status?.envReady)}

@@ -79,7 +79,7 @@ export default function TopNavbar({
             </div>
             <div className="hidden min-w-0 sm:block">
               <p className="truncate text-sm font-medium text-neutral-900">
-                {authUser?.name || authUser?.username || authUser?.email || "User"}
+                {authUser?.name || authUser?.email || "User"}
               </p>
               <p className="text-xs text-neutral-500">
                 {authUser?.role === "ADMIN" ? "Admin · Pro" : "Sales rep"}

@@ -7,8 +7,8 @@ Unified NestJS API for lead scraping, lead management, WhatsApp setup, outreach,
 - One PostgreSQL database stores both Google Maps lead data and WhatsApp outreach data.
 - `/scrape` uses Redis/BullMQ and Playwright to scrape Google Maps into the unified `Lead` table.
 - WhatsApp sending still uses the existing database-backed cron queue for pacing and anti-blocking rules.
-- Public setup/signup routes are removed. The only auth entry points are `POST /auth/login` and `GET /auth/me`.
-- Seeding creates or refreshes the fixed login accounts.
+- Auth uses email and password. Signup requires an email OTP before creating an account.
+- Seeding only removes legacy fixed login accounts; new accounts are created through signup.
 
 ## Local Start
 
@@ -27,31 +27,13 @@ Local dependencies:
 - Redis for scraper jobs
 - WAHA if testing WhatsApp Web flows
 
-## Seeded Accounts
-
-Default local logins:
-
-```text
-farooq / farooq123
-khalil / khalil123
-rehman / rehman123
-saud / saud123
-```
-
-Set these before seeding in production:
-
-```env
-FAROOQ_PASSWORD=
-KHALIL_PASSWORD=
-REHMAN_PASSWORD=
-SAUD_PASSWORD=
-```
-
 ## Main Routes
 
 | Route | Purpose |
 | --- | --- |
-| `POST /auth/login` | Login |
+| `POST /auth/login` | Email/password login |
+| `POST /auth/signup` | Request signup email OTP |
+| `POST /auth/signup/verify` | Verify signup OTP and create account |
 | `GET /auth/me` | Current account |
 | `GET /leads` | Account-scoped unified leads, with scraper filters |
 | `POST /leads` | Manual contact |

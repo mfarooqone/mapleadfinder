@@ -35,8 +35,9 @@ export type LandingStep = {
 export type LandingPricingTier = {
   id: string;
   name: string;
-  price: string;
-  period: string;
+  monthlyPrice: number;
+  annualMonthlyPrice: number;
+  annualTotal: number;
   description: string;
   features: string[];
   highlighted?: boolean;
@@ -209,8 +210,9 @@ export const LANDING_PRICING: LandingPricingTier[] = [
   {
     id: "starter",
     name: "Starter",
-    price: "$0",
-    period: "forever",
+    monthlyPrice: 0,
+    annualMonthlyPrice: 0,
+    annualTotal: 0,
     description: "For solo reps testing local outreach.",
     features: [
       "500 leads / month",
@@ -224,8 +226,9 @@ export const LANDING_PRICING: LandingPricingTier[] = [
   {
     id: "pro",
     name: "Pro",
-    price: "$49",
-    period: "per user / mo",
+    monthlyPrice: 10,
+    annualMonthlyPrice: 8,
+    annualTotal: 96,
     description: "For growing teams running daily campaigns.",
     highlighted: true,
     features: [
@@ -241,8 +244,9 @@ export const LANDING_PRICING: LandingPricingTier[] = [
   {
     id: "team",
     name: "Team",
-    price: "$99",
-    period: "per user / mo",
+    monthlyPrice: 20,
+    annualMonthlyPrice: 16,
+    annualTotal: 192,
     description: "For agencies and multi-rep sales floors.",
     features: [
       "Everything in Pro",

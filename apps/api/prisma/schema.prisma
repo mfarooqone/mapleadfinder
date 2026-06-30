@@ -107,7 +107,6 @@ enum LeadSource {
 
 model User {
   id               String    @id @default(uuid())
-  username         String?   @unique
   email            String    @unique
   name             String?
   passwordHash     String
@@ -115,7 +114,6 @@ model User {
   isActive         Boolean   @default(true)
   emailVerifiedAt  DateTime?
   licenseExpiresAt DateTime?
-  createdByUserId  String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -126,7 +124,6 @@ model User {
 
 model SignupVerification {
   id           String   @id @default(uuid())
-  username     String
   email        String   @unique
   name         String?
   passwordHash String
@@ -136,7 +133,18 @@ model SignupVerification {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  @@index([username])
+  @@index([expiresAt])
+}
+
+model PasswordResetVerification {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  codeHash  String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([expiresAt])
 }
 

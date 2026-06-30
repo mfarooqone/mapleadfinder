@@ -4,8 +4,11 @@ import { Public } from './decorators/public.decorator';
 import { AuthService } from './auth.service';
 import type { AuthenticatedUser } from './auth.types';
 import { LoginDto } from './dto/login.dto';
+import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
+import { ResendSignupDto } from './dto/resend-signup.dto';
 import { SignupDto } from './dto/signup.dto';
 import { VerifySignupDto } from './dto/verify-signup.dto';
+import { VerifyPasswordResetDto } from './dto/verify-password-reset.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -27,6 +30,24 @@ export class AuthController {
   @Post('signup/verify')
   verifySignup(@Body() dto: VerifySignupDto) {
     return this.authService.verifySignup(dto);
+  }
+
+  @Public()
+  @Post('signup/resend')
+  resendSignup(@Body() dto: ResendSignupDto) {
+    return this.authService.resendSignup(dto);
+  }
+
+  @Public()
+  @Post('password/forgot')
+  requestPasswordReset(@Body() dto: RequestPasswordResetDto) {
+    return this.authService.requestPasswordReset(dto);
+  }
+
+  @Public()
+  @Post('password/reset')
+  verifyPasswordReset(@Body() dto: VerifyPasswordResetDto) {
+    return this.authService.verifyPasswordReset(dto);
   }
 
   @Get('me')

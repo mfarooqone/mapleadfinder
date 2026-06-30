@@ -14,8 +14,8 @@ A unified lead outreach platform with:
 - One PostgreSQL database
 - One NestJS API
 - One Next.js frontend
-- Login and signup screens
-- Four seeded accounts plus self-serve signup
+- Email/password login and signup screens
+- Email-verified self-serve signup
 - Account-scoped data for every lead, scrape job, WhatsApp account, conversation, message, template, and outreach stat
 
 The previous separate WhatsApp and lead-generation apps were merged and removed from the working tree. Use `apps/api`, `apps/web`, and `deploy` for all current development.
@@ -52,7 +52,7 @@ lead-outreach-platform/
 
 | Module | Purpose |
 | --- | --- |
-| `auth` | Username/password login, JWT validation, fixed seeded accounts |
+| `auth` | Email/password login, signup email OTP, JWT validation |
 | `leads` | Unified lead CRUD, CSV upload, wa.me links, scraper filters |
 | `scraper` | Google Maps scraping with Playwright |
 | `scrape-jobs` | Redis/BullMQ scrape queue and status endpoints |
@@ -68,14 +68,8 @@ lead-outreach-platform/
 - Public signup is available at `/signup`; it requires an email OTP before creating a normal user account.
 - Signup blocks common temporary email domains and domains without MX mail records.
 - Dashboard user-management routes are removed.
-- Four fixed accounts are seeded by `apps/api/prisma/seed.js`.
-- Seeding creates the fixed accounts when the database is empty.
-- Set `RESET_SEED_ON_START=true` only when you intentionally want to delete all app users and user-scoped app data before recreating the fixed accounts.
-- Login accounts:
-  - `farooq` with password from `FAROOQ_PASSWORD` or default `farooq123`
-  - `khalil` with password from `KHALIL_PASSWORD` or default `khalil123`
-  - `rehman` with password from `REHMAN_PASSWORD` or default `rehman123`
-  - `saud` with password from `SAUD_PASSWORD` or default `saud123`
+- Login uses email and password only.
+- `apps/api/prisma/seed.js` removes legacy fixed login accounts and does not create users.
 - Self-serve signup accounts are created with role `USER`.
 - Configure `SIGNUP_SMTP_*` or platform `SMTP_*` env vars before enabling public signup in production.
 

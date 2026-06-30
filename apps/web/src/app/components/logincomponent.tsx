@@ -17,11 +17,11 @@ import {
 
 export default function LoginPage() {
   const router = useRouter();
-  const [login, setLogin] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [errors, setErrors] = useState<{ login?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   useEffect(() => {
     const token = getAuthToken();
@@ -38,8 +38,11 @@ export default function LoginPage() {
 
   const validate = () => {
     const next: typeof errors = {};
-    if (!login.trim()) next.login = "Username is required";
-    else if (login.trim().length < 2) next.login = "Enter a valid username";
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail) next.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      next.email = "Enter a valid email";
+    }
     if (!password) next.password = "Password is required";
     else if (password.length < 6) next.password = "At least 6 characters";
     return next;
@@ -60,8 +63,8 @@ export default function LoginPage() {
     try {
       const session = await postJson<
         LoginResponse,
-        { login: string; password: string }
-      >("/auth/login", { login: login.trim(), password });
+        { email: string; password: string }
+      >("/auth/login", { email: email.trim(), password });
 
       if (!setAuthSession(session)) {
         clearAuthSession();
@@ -82,28 +85,28 @@ export default function LoginPage() {
   return (
     <AuthLayout
       title="Sign in to MapLeadFinder"
-      subtitle="Use your assigned username and password"
+      subtitle="Use your email and password"
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
-            <label htmlFor="login" className="label">
-              Username
+            <label htmlFor="email" className="label">
+              Email
             </label>
             <input
-              id="login"
-              type="text"
-              value={login}
+              id="email"
+              type="email"
+              value={email}
               onChange={(e) => {
-                setLogin(e.target.value);
-                setErrors((c) => ({ ...c, login: undefined }));
+                setEmail(e.target.value);
+                setErrors((c) => ({ ...c, email: undefined }));
                 setSubmitError("");
               }}
-              placeholder="farooq"
-              className={`input ${errors.login ? "input-error" : ""}`}
-              autoComplete="username"
+              placeholder="you@example.com"
+              className={`input ${errors.email ? "input-error" : ""}`}
+              autoComplete="email"
             />
-            {errors.login ? (
-              <p className="mt-1 text-xs text-red-600">{errors.login}</p>
+            {errors.email ? (
+              <p className="mt-1 text-xs text-red-600">{errors.email}</p>
             ) : null}
           </div>
 
@@ -141,6 +144,12 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-6 text-center text-xs text-neutral-500">
+          <Link href="/forgot-password" className="font-medium text-emerald-700 hover:underline">
+            Forgot password?
+          </Link>
+        </p>
+
+        <p className="mt-3 text-center text-xs text-neutral-500">
           Need a new account?{" "}
           <Link href="/signup" className="font-medium text-emerald-700 hover:underline">
             Create one

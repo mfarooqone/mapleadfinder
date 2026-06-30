@@ -7,7 +7,7 @@ Unified Next.js dashboard for scraping Google Maps leads, managing contacts, con
 - One frontend replaces the old separate WhatsApp and lead-generation UIs.
 - `/dashboard/scraper` imports Google Maps leads into the same lead database used by outreach.
 - `/dashboard/leads`, `/dashboard/contacts`, and `/dashboard/whatsapp` all read account-scoped data from the unified API.
-- There is one login screen. Public signup/setup and user-management navigation are removed.
+- There is one email/password login screen, plus public email-verified signup.
 - Browser API calls go through `/api/backend`, which proxies to the NestJS API.
 
 ## Local Start
@@ -39,4 +39,4 @@ NEXT_PUBLIC_API_BASE_URL=/api/backend
 | `/dashboard/conversations` | Inbox |
 | `/dashboard/templates` | Message templates |
 
-Each seeded account sees only its own leads, WhatsApp account, messages, templates, conversations, and scrape jobs.
+Each account sees only its own leads, WhatsApp account, messages, templates, conversations, and scrape jobs.

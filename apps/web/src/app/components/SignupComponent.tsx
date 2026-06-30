@@ -17,7 +17,6 @@ import {
 
 type SignupErrors = {
   name?: string;
-  username?: string;
   email?: string;
   password?: string;
   code?: string;
@@ -26,7 +25,6 @@ type SignupErrors = {
 export default function SignupComponent() {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
@@ -34,6 +32,7 @@ export default function SignupComponent() {
   const [verificationSent, setVerificationSent] = useState(false);
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [errors, setErrors] = useState<SignupErrors>({});
 
@@ -52,15 +51,9 @@ export default function SignupComponent() {
 
   const validate = () => {
     const next: SignupErrors = {};
-    const normalizedUsername = username.trim();
     const normalizedEmail = email.trim();
 
     if (name.trim().length > 80) next.name = "Name is too long";
-    if (!normalizedUsername) next.username = "Username is required";
-    else if (normalizedUsername.length < 2) next.username = "At least 2 characters";
-    else if (!/^[a-zA-Z0-9._-]+$/.test(normalizedUsername)) {
-      next.username = "Use letters, numbers, dots, underscores, or hyphens";
-    }
 
     if (!normalizedEmail) next.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
@@ -89,10 +82,9 @@ export default function SignupComponent() {
     try {
       const response = await postJson<
         { requiresVerification: boolean; email: string; expiresAt: string; note?: string },
-        { name?: string; username: string; email: string; password: string }
+        { name?: string; email: string; password: string }
       >("/auth/signup", {
         name: name.trim() || undefined,
-        username: username.trim(),
         email: email.trim(),
         password,
       });
@@ -146,6 +138,33 @@ export default function SignupComponent() {
     }
   };
 
+  const handleResendCode = async () => {
+    if (!verificationEmail) return;
+
+    setErrors({});
+    setSubmitError("");
+    setNotice("");
+    setResending(true);
+
+    try {
+      const response = await postJson<
+        { requiresVerification: boolean; email: string; expiresAt: string; note?: string },
+        { email: string }
+      >("/auth/signup/resend", {
+        email: verificationEmail,
+      });
+
+      setCode("");
+      setNotice(response.note ?? `We sent a new verification code to ${response.email}.`);
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : "Could not resend code. Try again.",
+      );
+    } finally {
+      setResending(false);
+    }
+  };
+
   const clearFieldError = (field: keyof SignupErrors) => {
     setErrors((current) => ({ ...current, [field]: undefined }));
     setSubmitError("");
@@ -175,27 +194,6 @@ export default function SignupComponent() {
               autoComplete="name"
             />
             {errors.name ? <p className="mt-1 text-xs text-red-600">{errors.name}</p> : null}
-          </div>
-
-          <div>
-            <label htmlFor="username" className="label">
-              Username
-            </label>
-            <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(event) => {
-                setUsername(event.target.value);
-                clearFieldError("username");
-              }}
-              placeholder="rehman"
-              className={`input ${errors.username ? "input-error" : ""}`}
-              autoComplete="username"
-            />
-            {errors.username ? (
-              <p className="mt-1 text-xs text-red-600">{errors.username}</p>
-            ) : null}
           </div>
 
           <div>
@@ -281,7 +279,16 @@ export default function SignupComponent() {
             <button
               type="button"
               className="btn btn-secondary w-full"
-              disabled={loading}
+              disabled={loading || resending}
+              onClick={handleResendCode}
+            >
+              {resending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : "Resend code"}
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary w-full"
+              disabled={loading || resending}
               onClick={() => {
                 setVerificationSent(false);
                 setCode("");

@@ -5,7 +5,6 @@ const AUTH_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 
 export type AuthUser = {
   id: string;
-  username: string | null;
   email: string;
   name: string | null;
   role: "ADMIN" | "USER";

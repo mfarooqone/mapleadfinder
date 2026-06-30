@@ -59,9 +59,6 @@ services:
       REDIS_HOST: leadoutreach-redis
       REDIS_PORT: 6379
       WAHA_BASE_URL: http://waha:3000
-      WAHA_BASE_URL_FAROOQ: http://waha:3000
-      WAHA_BASE_URL_KHALIL: http://waha_khalil:3000
-      WAHA_BASE_URL_REHMAN: http://waha_rehman:3000
     volumes:
       - baileys_sessions:/app/sessions/baileys
     labels:
@@ -127,7 +124,7 @@ services:
     environment:
       WHATSAPP_DEFAULT_ENGINE: GOWS
       GODEBUG: netdns=go
-      WHATSAPP_HOOK_URL: "${PUBLIC_API_URL}/webhooks/whatsapp/waha?userId=user-farooq"
+      WHATSAPP_HOOK_URL: "${PUBLIC_API_URL}/webhooks/whatsapp/waha"
       WHATSAPP_HOOK_EVENTS: message,message.ack,session.status
       WAHA_API_KEY: ${WAHA_API_KEY:-}
       WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USERNAME:-admin}
@@ -149,53 +146,11 @@ services:
       - traefik.http.routers.lead-outreach-waha.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-mytlschallenge}
       - traefik.http.services.lead-outreach-waha.loadbalancer.server.port=3000
 
-  waha_khalil:
-    image: devlikeapro/waha:latest
-    restart: unless-stopped
-    shm_size: "512mb"
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
-    environment:
-      WHATSAPP_DEFAULT_ENGINE: GOWS
-      GODEBUG: netdns=go
-      WHATSAPP_HOOK_URL: "${PUBLIC_API_URL}/webhooks/whatsapp/waha?userId=user-khalil"
-      WHATSAPP_HOOK_EVENTS: message,message.ack,session.status
-      WAHA_API_KEY: ${WAHA_API_KEY:-}
-      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USERNAME:-admin}
-      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD:?Set WAHA_DASHBOARD_PASSWORD in deploy/.env}
-    volumes:
-      - waha_khalil_sessions:/app/.sessions
-    networks:
-      - internal
-
-  waha_rehman:
-    image: devlikeapro/waha:latest
-    restart: unless-stopped
-    shm_size: "512mb"
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
-    environment:
-      WHATSAPP_DEFAULT_ENGINE: GOWS
-      GODEBUG: netdns=go
-      WHATSAPP_HOOK_URL: "${PUBLIC_API_URL}/webhooks/whatsapp/waha?userId=user-rehman"
-      WHATSAPP_HOOK_EVENTS: message,message.ack,session.status
-      WAHA_API_KEY: ${WAHA_API_KEY:-}
-      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USERNAME:-admin}
-      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD:?Set WAHA_DASHBOARD_PASSWORD in deploy/.env}
-    volumes:
-      - waha_rehman_sessions:/app/.sessions
-    networks:
-      - internal
-
 volumes:
   postgres_data:
   redis_data:
   baileys_sessions:
   waha_sessions:
-  waha_khalil_sessions:
-  waha_rehman_sessions:
 
 networks:
   internal:

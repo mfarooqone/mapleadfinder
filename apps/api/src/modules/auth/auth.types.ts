@@ -4,7 +4,6 @@ export type LicenseStatus = 'ACTIVE' | 'EXPIRED' | 'UNLIMITED';
 
 export type AuthenticatedUser = {
   id: string;
-  username: string | null;
   email: string;
   name: string | null;
   role: UserRole;
