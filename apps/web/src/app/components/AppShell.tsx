@@ -15,7 +15,7 @@ export default function AppShell({
   children,
   onRefresh,
   refreshing = false,
-  contentClassName = "max-w-6xl",
+  contentClassName = "max-w-7xl",
 }: AppShellProps) {
   return (
     <div className="app-shell flex min-h-screen">

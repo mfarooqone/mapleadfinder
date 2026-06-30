@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 # Sync local repo to Hostinger VPS and rebuild containers.
+# Usage:
+#   ./deploy/scripts/deploy-from-mac.sh          # full stack rebuild
+#   ./deploy/scripts/deploy-from-mac.sh web      # frontend only (faster)
+#   ./deploy/scripts/deploy-from-mac.sh api      # API only
 set -euo pipefail
 
 VPS_HOST="${VPS_HOST:-root@69.62.124.22}"
 APP_DIR="${APP_DIR:-/opt/lead-outreach-platform}"
 SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519}"
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+TARGET="${1:-all}"
 
 SSH_OPTS=(-o BatchMode=yes)
 if [[ -f "${SSH_KEY}" ]]; then
@@ -43,7 +48,19 @@ if ! ssh "${SSH_OPTS[@]}" "${VPS_HOST}" "test -f ${APP_DIR}/deploy/.env"; then
   exit 1
 fi
 
-echo "Deploying containers..."
-ssh "${SSH_OPTS[@]}" "${VPS_HOST}" "bash ${APP_DIR}/deploy/scripts/bootstrap-vps.sh"
+echo "Deploying containers (${TARGET})..."
+case "${TARGET}" in
+  web)
+    ssh "${SSH_OPTS[@]}" "${VPS_HOST}" \
+      "cd ${APP_DIR}/deploy && docker compose --env-file .env up -d --build web"
+    ;;
+  api)
+    ssh "${SSH_OPTS[@]}" "${VPS_HOST}" \
+      "cd ${APP_DIR}/deploy && docker compose --env-file .env up -d --build api"
+    ;;
+  all|*)
+    ssh "${SSH_OPTS[@]}" "${VPS_HOST}" "bash ${APP_DIR}/deploy/scripts/bootstrap-vps.sh"
+    ;;
+esac
 
-echo "Done."
+echo "Done. App: https://app.mapleadfinder.com"

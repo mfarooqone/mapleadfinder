@@ -68,6 +68,10 @@ services:
       - traefik.enable=true
       - traefik.docker.network=${TRAEFIK_NETWORK:-traefik_public}
       - traefik.http.routers.lead-outreach-api.rule=Host(`${API_SUBDOMAIN}.${DOMAIN_NAME}`)
+      - traefik.http.routers.lead-outreach-api-http.rule=Host(`${API_SUBDOMAIN}.${DOMAIN_NAME}`)
+      - traefik.http.routers.lead-outreach-api-http.entrypoints=http
+      - traefik.http.routers.lead-outreach-api-http.middlewares=lead-outreach-redirect-https
+      - traefik.http.middlewares.lead-outreach-redirect-https.redirectscheme.scheme=https
       - traefik.http.routers.lead-outreach-api.tls=true
       - traefik.http.routers.lead-outreach-api.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
       - traefik.http.routers.lead-outreach-api.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-mytlschallenge}
@@ -89,6 +93,9 @@ services:
       - traefik.enable=true
       - traefik.docker.network=${TRAEFIK_NETWORK:-traefik_public}
       - traefik.http.routers.lead-outreach-web.rule=Host(`${APP_SUBDOMAIN}.${DOMAIN_NAME}`)
+      - traefik.http.routers.lead-outreach-web-http.rule=Host(`${APP_SUBDOMAIN}.${DOMAIN_NAME}`)
+      - traefik.http.routers.lead-outreach-web-http.entrypoints=http
+      - traefik.http.routers.lead-outreach-web-http.middlewares=lead-outreach-redirect-https
       - traefik.http.routers.lead-outreach-web.tls=true
       - traefik.http.routers.lead-outreach-web.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
       - traefik.http.routers.lead-outreach-web.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-mytlschallenge}
@@ -118,6 +125,9 @@ services:
       - traefik.enable=true
       - traefik.docker.network=${TRAEFIK_NETWORK:-traefik_public}
       - traefik.http.routers.lead-outreach-waha.rule=Host(`${WAHA_SUBDOMAIN}.${DOMAIN_NAME}`)
+      - traefik.http.routers.lead-outreach-waha-http.rule=Host(`${WAHA_SUBDOMAIN}.${DOMAIN_NAME}`)
+      - traefik.http.routers.lead-outreach-waha-http.entrypoints=http
+      - traefik.http.routers.lead-outreach-waha-http.middlewares=lead-outreach-redirect-https
       - traefik.http.routers.lead-outreach-waha.tls=true
       - traefik.http.routers.lead-outreach-waha.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
       - traefik.http.routers.lead-outreach-waha.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-mytlschallenge}

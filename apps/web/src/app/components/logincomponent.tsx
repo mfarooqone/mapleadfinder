@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import { postJson } from "@/lib/backend";
+import AuthLayout from "./AuthLayout";
 import {
   clearAuthSession,
   getAuthCookieToken,
@@ -79,14 +80,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-12">
-      <div className="card w-full max-w-sm card-pad">
-        <div className="mb-8 text-center">
-          <p className="text-lg font-semibold text-neutral-900">Lead Outreach</p>
-          <p className="mt-1 text-sm text-neutral-500">Sign in with your assigned account</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+    <AuthLayout
+      title="Sign in to MapLeadFinder"
+      subtitle="Use your assigned username and password"
+    >
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
             <label htmlFor="login" className="label">
               Username
@@ -144,17 +142,16 @@ export default function LoginPage() {
 
         <p className="mt-6 text-center text-xs text-neutral-500">
           Need a new account?{" "}
-          <Link href="/signup" className="font-medium text-green-700 hover:underline">
+          <Link href="/signup" className="font-medium text-emerald-700 hover:underline">
             Create one
           </Link>
         </p>
 
         <p className="mt-3 text-center text-xs text-neutral-500">
-          <Link href="/" className="font-medium text-green-700 hover:underline">
+          <Link href="/" className="font-medium text-emerald-700 hover:underline">
             Back to home
           </Link>
         </p>
-      </div>
-    </div>
+    </AuthLayout>
   );
 }

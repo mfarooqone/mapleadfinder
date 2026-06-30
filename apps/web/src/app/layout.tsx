@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "WhatsApp Agent",
-  description: "WhatsApp automation dashboard",
+  title: "MapLeadFinder — Google Maps Leads & WhatsApp Outreach",
+  description:
+    "Scrape local businesses from Google Maps, build your lead database, and run safe WhatsApp and email campaigns — all in one dashboard.",
 };
 
 export default function RootLayout({

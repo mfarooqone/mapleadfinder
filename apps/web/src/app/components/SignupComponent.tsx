@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import { postJson } from "@/lib/backend";
+import AuthLayout from "./AuthLayout";
 import {
   clearAuthSession,
   getAuthCookieToken,
@@ -151,15 +152,10 @@ export default function SignupComponent() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-12">
-      <div className="card w-full max-w-md card-pad">
-        <div className="mb-8 text-center">
-          <p className="text-lg font-semibold text-neutral-900">Create account</p>
-          <p className="mt-1 text-sm text-neutral-500">
-            Verify your email first. Temporary email addresses are blocked.
-          </p>
-        </div>
-
+    <AuthLayout
+      title="Create your MapLeadFinder account"
+      subtitle="Verify your email first. Temporary email addresses are blocked."
+    >
         {!verificationSent ? (
         <form onSubmit={handleRequestCode} className="space-y-4" noValidate>
           <div>
@@ -300,11 +296,10 @@ export default function SignupComponent() {
 
         <p className="mt-6 text-center text-xs text-neutral-500">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-green-700 hover:underline">
+          <Link href="/login" className="font-medium text-emerald-700 hover:underline">
             Sign in
           </Link>
         </p>
-      </div>
-    </div>
+    </AuthLayout>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
+import { TrendingDown, TrendingUp } from "lucide-react";
 
 export type DashboardStatCard = {
   label: string;
@@ -9,6 +10,8 @@ export type DashboardStatCard = {
   icon: LucideIcon;
   accent: string;
   bg: string;
+  trend?: string;
+  trendUp?: boolean;
 };
 
 type StatsCardsProps = {
@@ -22,15 +25,30 @@ export default function StatsCards({ cards, loading = false }: StatsCardsProps) 
       {cards.map((card) => {
         const Icon = card.icon;
         return (
-          <div key={card.label} className="card card-pad">
-            <div className="flex items-center justify-between gap-3">
+          <div key={card.label} className="dashboard-stat-card">
+            <div className="flex items-start justify-between gap-3">
               <div
-                className="flex h-9 w-9 items-center justify-center rounded-lg"
+                className="flex h-10 w-10 items-center justify-center rounded-xl"
                 style={{ background: card.bg }}
               >
-                <Icon className="h-4 w-4" style={{ color: card.accent }} />
+                <Icon className="h-5 w-5" style={{ color: card.accent }} />
               </div>
-              {loading ? (
+              {card.trend ? (
+                <span
+                  className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                    card.trendUp !== false
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-red-50 text-red-600"
+                  }`}
+                >
+                  {card.trendUp !== false ? (
+                    <TrendingUp className="h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3" />
+                  )}
+                  {card.trend}
+                </span>
+              ) : loading ? (
                 <span className="text-xs text-neutral-400">…</span>
               ) : null}
             </div>

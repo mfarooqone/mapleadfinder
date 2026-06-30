@@ -1,40 +1,39 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  MessageSquare,
-  MessagesSquare,
-  QrCode,
-  Shapes,
-  UserRoundPlus,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
 import { startTransition, useEffect, useMemo, useState } from "react";
+import { getAuthUser } from "@/lib/auth";
 import { postJson } from "@/lib/backend";
+import ActivityJobsPanel from "./Activityjobspanel";
 import AppShell from "./AppShell";
 import DashboardHero from "./Dashboardhero";
+import DashboardLeaderboard from "./DashboardLeaderboard";
+import DashboardOnboarding from "./DashboardOnboarding";
+import DashboardPipelineFunnel from "./DashboardPipelineFunnel";
+import DashboardQuickActions from "./DashboardQuickActions";
+import DashboardRecentLeads from "./DashboardRecentLeads";
+import DashboardReviews from "./DashboardReviews";
+import DashboardTrustBar from "./DashboardTrustBar";
 import StatsCards from "./Statscards";
 import StatusBanner, { type BannerState } from "./StatusBanner";
 import {
-  DEFAULT_WAHA_SESSION,
+  buildActivityItems,
   buildDashboardStats,
+  DEFAULT_WAHA_SESSION,
   fetchDashboardSummary,
 } from "./dashboard-data";
+import {
+  buildOnboardingSteps,
+  buildPipelineStages,
+  TRUST_STATS,
+} from "./marketing-data";
 import type {
+  ConnectedAccount,
   ConversationRecord,
   LeadRecord,
   TemplateRecord,
   TestingStatus,
 } from "@/lib/backend";
-
-type QuickLink = {
-  href: string;
-  title: string;
-  meta: string;
-  icon: LucideIcon;
-};
 
 export default function OverviewWorkspace() {
   const router = useRouter();
@@ -42,10 +41,12 @@ export default function OverviewWorkspace() {
   const [leads, setLeads] = useState<LeadRecord[]>([]);
   const [templates, setTemplates] = useState<TemplateRecord[]>([]);
   const [conversations, setConversations] = useState<ConversationRecord[]>([]);
+  const [accounts, setAccounts] = useState<ConnectedAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [bootstrapping, setBootstrapping] = useState(false);
   const [banner, setBanner] = useState<BannerState>(null);
+  const authUser = useMemo(() => getAuthUser(), []);
 
   const applySummary = (
     data: Awaited<ReturnType<typeof fetchDashboardSummary>>,
@@ -55,6 +56,7 @@ export default function OverviewWorkspace() {
       setLeads(data.leads);
       setTemplates(data.templates);
       setConversations(data.conversations);
+      setAccounts(data.accounts);
     });
   };
 
@@ -92,7 +94,7 @@ export default function OverviewWorkspace() {
     setBanner(null);
     try {
       await loadOverview();
-      setBanner({ type: "success", message: "Updated." });
+      setBanner({ type: "success", message: "Dashboard updated." });
     } catch (error) {
       setBanner({
         type: "error",
@@ -122,62 +124,56 @@ export default function OverviewWorkspace() {
     }
   };
 
+  const connected = Boolean(status?.connectedAccount);
+  const linkedPhone = status?.connectedAccount?.phoneNumber;
+  const optedInLeads = leads.filter((lead) => lead.optIn).length;
+  const engagedLeads = leads.filter((lead) => lead.warmUpStatus === "ENGAGED").length;
+
   const stats = useMemo(
     () => buildDashboardStats({ leads, templates, conversations, status }),
     [conversations, leads, status, templates],
   );
 
-  const linkedPhone = status?.connectedAccount?.phoneNumber;
-  const connected = Boolean(status?.connectedAccount);
+  const onboardingSteps = useMemo(
+    () =>
+      buildOnboardingSteps({
+        connected,
+        leadsCount: leads.length,
+        templatesCount: templates.length,
+        conversationsCount: conversations.length,
+      }),
+    [connected, conversations.length, leads.length, templates.length],
+  );
 
-  const quickLinks = useMemo<QuickLink[]>(
-    () => [
-      {
-        href: "/dashboard/whatsapp/setup",
-        title: "Setup",
-        meta: connected ? (linkedPhone ?? "Linked") : "Link your number",
-        icon: QrCode,
-      },
-      {
-        href: "/dashboard/whatsapp",
-        title: "Send",
-        meta: connected ? "Ready" : "Link WhatsApp first",
-        icon: MessageSquare,
-      },
-      {
-        href: "/dashboard/conversations",
-        title: "Inbox",
-        meta: `${conversations.length} threads`,
-        icon: MessagesSquare,
-      },
-      {
-        href: "/dashboard/contacts",
-        title: "Contacts",
-        meta: "Manage list",
-        icon: UserRoundPlus,
-      },
-      {
-        href: "/dashboard/leads",
-        title: "Leads",
-        meta: `${leads.length} total`,
-        icon: Users,
-      },
-      {
-        href: "/dashboard/templates",
-        title: "Templates",
-        meta: `${templates.filter((t) => t.status === "APPROVED").length} approved`,
-        icon: Shapes,
-      },
-    ],
-    [connected, conversations.length, leads.length, linkedPhone, templates],
+  const pipelineStages = useMemo(
+    () =>
+      buildPipelineStages({
+        leadsCount: leads.length,
+        optedInCount: optedInLeads,
+        conversationsCount: conversations.length,
+        engagedCount: engagedLeads,
+      }),
+    [conversations.length, engagedLeads, leads.length, optedInLeads],
+  );
+
+  const activityItems = useMemo(
+    () =>
+      buildActivityItems({
+        status,
+        accounts,
+        templates,
+        conversations,
+      }),
+    [accounts, conversations, status, templates],
   );
 
   return (
     <AppShell onRefresh={() => void refreshAll()} refreshing={refreshing}>
-      <div className="flex flex-col gap-4 pb-20 xl:pb-6">
+      <div className="flex flex-col gap-6 pb-20 xl:pb-8">
         <StatusBanner banner={banner} />
 
         <DashboardHero
+          userName={authUser?.name ?? authUser?.username}
           connected={connected}
           linkedPhone={linkedPhone}
           envReady={Boolean(status?.envReady)}
@@ -188,29 +184,45 @@ export default function OverviewWorkspace() {
           loading={bootstrapping}
         />
 
+        <DashboardTrustBar />
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            { label: "Leads scraped", value: TRUST_STATS.leadsScraped },
+            { label: "Messages sent", value: TRUST_STATS.messagesSent },
+            { label: "Active users", value: TRUST_STATS.users },
+            { label: "Avg. rating", value: `${TRUST_STATS.avgRating} ★` },
+          ].map((item) => (
+            <div key={item.label} className="dashboard-mini-stat">
+              <p className="text-lg font-bold text-neutral-900">{item.value}</p>
+              <p className="text-xs text-neutral-500">{item.label}</p>
+            </div>
+          ))}
+        </div>
+
         <StatsCards cards={stats} loading={loading} />
 
-        <section className="card card-pad">
-          <p className="section-label">Quick links</p>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {quickLinks.map((link) => {
-              const Icon = link.icon;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="flex items-center gap-3 rounded-lg border border-neutral-200 px-4 py-3 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
-                >
-                  <Icon className="h-4 w-4 shrink-0 text-neutral-400" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-neutral-900">{link.title}</p>
-                    <p className="truncate text-xs text-neutral-500">{link.meta}</p>
-                  </div>
-                </Link>
-              );
-            })}
+        <DashboardQuickActions />
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <DashboardOnboarding steps={onboardingSteps} />
+          <DashboardPipelineFunnel stages={pipelineStages} />
+        </div>
+
+        <div className="grid gap-6 xl:grid-cols-3">
+          <div className="xl:col-span-2">
+            <DashboardRecentLeads leads={leads} loading={loading} />
           </div>
-        </section>
+          <DashboardLeaderboard />
+        </div>
+
+        <ActivityJobsPanel
+          items={activityItems}
+          onRefresh={() => void refreshAll()}
+          refreshing={refreshing}
+        />
+
+        <DashboardReviews />
       </div>
     </AppShell>
   );
