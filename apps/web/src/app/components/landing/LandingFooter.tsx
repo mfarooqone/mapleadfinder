@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import MapLeadFinderLogo from "../MapLeadFinderLogo";
 
 const footerLinks = {
   Product: [
@@ -20,12 +23,7 @@ export default function LandingFooter() {
       <div className="landing-container py-12">
         <div className="grid gap-10 md:grid-cols-3">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-xs font-bold text-white">
-                ML
-              </span>
-              <span className="font-bold text-neutral-900">MapLeadFinder</span>
-            </div>
+            <MapLeadFinderLogo href="/" variant="onDark" size="sm" />
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-neutral-500">
               Google Maps lead generation and WhatsApp outreach for modern B2B teams.
             </p>

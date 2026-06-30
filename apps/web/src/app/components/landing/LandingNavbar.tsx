@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import MapLeadFinderLogo from "../MapLeadFinderLogo";
 
 const navLinks = [
   { href: "#features", label: "Features" },
@@ -18,14 +19,7 @@ export default function LandingNavbar() {
   return (
     <header className="landing-nav">
       <div className="landing-container flex items-center justify-between py-4">
-        <Link href="/" className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-sm font-bold text-white shadow-sm">
-            ML
-          </span>
-          <span className="text-lg font-bold tracking-tight text-neutral-900">
-            MapLeadFinder
-          </span>
-        </Link>
+        <MapLeadFinderLogo href="/" size="md" />
 
         <nav className="hidden items-center gap-8 md:flex">
           {navLinks.map((link) => (

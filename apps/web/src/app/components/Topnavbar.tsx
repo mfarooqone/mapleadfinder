@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Bell, LogOut, RefreshCw, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
+import MapLeadFinderLogo from "./MapLeadFinderLogo";
 import { clearAuthSession, getAuthUser, type AuthUser } from "@/lib/auth";
 
 type TopNavbarProps = {
@@ -39,10 +40,7 @@ export default function TopNavbar({
     <header className="sticky top-0 z-20 border-b border-neutral-200/80 bg-white/90 backdrop-blur-md">
       <div className="flex items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex min-w-0 items-center gap-2 xl:hidden">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-xs font-bold text-white">
-            ML
-          </span>
-          <p className="truncate text-sm font-bold text-neutral-900">MapLeadFinder</p>
+          <MapLeadFinderLogo href="/dashboard" size="sm" />
         </div>
 
         <div className="relative hidden max-w-md flex-1 md:block">

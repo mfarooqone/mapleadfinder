@@ -5,6 +5,10 @@ export const metadata: Metadata = {
   title: "MapLeadFinder — Google Maps Leads & WhatsApp Outreach",
   description:
     "Scrape local businesses from Google Maps, build your lead database, and run safe WhatsApp and email campaigns — all in one dashboard.",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

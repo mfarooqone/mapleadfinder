@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { Star } from "lucide-react";
 import type { ReactNode } from "react";
+import MapLeadFinderLogo from "./MapLeadFinderLogo";
 import { LANDING_REVIEWS, TRUST_STATS } from "./marketing-data";
 
 type AuthLayoutProps = {
@@ -18,12 +18,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
     <div className="auth-layout">
       <aside className="auth-layout-panel hidden lg:flex lg:flex-col lg:justify-between">
         <div>
-          <Link href="/" className="flex items-center gap-2.5">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-sm font-bold text-white backdrop-blur-sm">
-              ML
-            </span>
-            <span className="text-xl font-bold text-white">MapLeadFinder</span>
-          </Link>
+          <MapLeadFinderLogo href="/" variant="light" size="lg" />
           <p className="mt-8 max-w-sm text-lg leading-relaxed text-emerald-50">
             Scrape Google Maps leads and run WhatsApp outreach from one Apollo-style
             workspace.
@@ -56,12 +51,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
       <div className="auth-layout-form flex flex-1 flex-col justify-center px-4 py-12 sm:px-8">
         <div className="mx-auto w-full max-w-sm">
           <div className="mb-8 lg:hidden">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-sm font-bold text-white">
-                ML
-              </span>
-              <span className="text-lg font-bold text-neutral-900">MapLeadFinder</span>
-            </Link>
+            <MapLeadFinderLogo href="/" size="md" />
           </div>
           <div className="mb-8">
             <h1 className="text-2xl font-bold tracking-tight text-neutral-900">{title}</h1>

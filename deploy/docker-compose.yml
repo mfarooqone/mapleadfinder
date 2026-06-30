@@ -99,6 +99,22 @@ services:
       - traefik.http.routers.lead-outreach-web.tls=true
       - traefik.http.routers.lead-outreach-web.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
       - traefik.http.routers.lead-outreach-web.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-mytlschallenge}
+      - traefik.http.routers.lead-outreach-web-apex.rule=Host(`${DOMAIN_NAME}`)
+      - traefik.http.routers.lead-outreach-web-apex.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
+      - traefik.http.routers.lead-outreach-web-apex.tls=true
+      - traefik.http.routers.lead-outreach-web-apex.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-mytlschallenge}
+      - traefik.http.routers.lead-outreach-web-apex.service=lead-outreach-web
+      - traefik.http.routers.lead-outreach-web-apex-http.rule=Host(`${DOMAIN_NAME}`)
+      - traefik.http.routers.lead-outreach-web-apex-http.entrypoints=http
+      - traefik.http.routers.lead-outreach-web-apex-http.middlewares=lead-outreach-redirect-https
+      - traefik.http.routers.lead-outreach-web-www.rule=Host(`www.${DOMAIN_NAME}`)
+      - traefik.http.routers.lead-outreach-web-www.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
+      - traefik.http.routers.lead-outreach-web-www.tls=true
+      - traefik.http.routers.lead-outreach-web-www.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-mytlschallenge}
+      - traefik.http.routers.lead-outreach-web-www.service=lead-outreach-web
+      - traefik.http.routers.lead-outreach-web-www-http.rule=Host(`www.${DOMAIN_NAME}`)
+      - traefik.http.routers.lead-outreach-web-www-http.entrypoints=http
+      - traefik.http.routers.lead-outreach-web-www-http.middlewares=lead-outreach-redirect-https
       - traefik.http.services.lead-outreach-web.loadbalancer.server.port=3000
 
   waha:

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 64" fill="none" role="img" aria-label="MapLeadFinder">
+  <defs>
+    <linearGradient id="bg" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#10B981"/>
+      <stop stop-color="#0D9488"/>
+    </linearGradient>
+    <linearGradient id="text" x1="72" y1="20" x2="232" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#171717"/>
+      <stop stop-color="#404040"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#bg)"/>
+  <path d="M44 24.5a12 12 0 0 0-16.97 0" stroke="#fff" stroke-opacity="0.45" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M40 28.5a8 8 0 0 0-11.31 0" stroke="#fff" stroke-opacity="0.7" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M32 48s10-9.2 10-18a10 10 0 1 0-20 0c0 8.8 10 18 10 18z" fill="#fff"/>
+  <circle cx="32" cy="28" r="3.75" fill="#059669"/>
+  <text x="76" y="42" fill="url(#text)" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="28" font-weight="700" letter-spacing="-0.02em">MapLeadFinder</text>
+</svg>

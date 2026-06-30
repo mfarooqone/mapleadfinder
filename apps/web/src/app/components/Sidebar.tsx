@@ -15,6 +15,7 @@ import {
   UserRoundPlus,
   Users,
 } from "lucide-react";
+import MapLeadFinderLogo from "./MapLeadFinderLogo";
 
 const navSections = [
   {
@@ -90,17 +91,11 @@ export default function Sidebar() {
     <>
       <aside className="dashboard-sidebar hidden xl:flex xl:flex-col">
         <div className="border-b border-neutral-200/80 px-5 py-5">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-sm font-bold text-white shadow-sm">
-              ML
-            </span>
-            <div>
-              <p className="text-sm font-bold tracking-tight text-neutral-900">
-                MapLeadFinder
-              </p>
-              <p className="text-[11px] text-neutral-500">Scrape · Enrich · Outreach</p>
-            </div>
-          </div>
+          <MapLeadFinderLogo
+            href="/"
+            size="sm"
+            tagline="Scrape · Enrich · Outreach"
+          />
         </div>
 
         <nav className="flex-1 space-y-6 overflow-y-auto p-4">
