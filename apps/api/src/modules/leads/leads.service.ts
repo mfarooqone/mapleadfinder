@@ -266,7 +266,11 @@ export class LeadsService {
     return { count: uniqueSavedLeadIds.length, batchId: batch.id };
   }
 
-  async createScrapeBatch(userId: string, keyword: string, maxRecords?: number) {
+  async createScrapeBatch(
+    userId: string,
+    keyword: string,
+    maxRecords?: number,
+  ) {
     return this.prisma.scrapeBatch.create({
       data: {
         userId,
@@ -851,11 +855,7 @@ export class LeadsService {
     };
   }
 
-  async getWaMeLink(
-    userId: string,
-    leadId: string,
-    prefilledText = 'Hi',
-  ) {
+  async getWaMeLink(userId: string, leadId: string, prefilledText = 'Hi') {
     const lead = await this.prisma.lead.findFirst({
       where: {
         id: leadId,
@@ -921,11 +921,7 @@ export class LeadsService {
     });
   }
 
-  async markEngagedOnIncoming(
-    userId: string,
-    phone: string,
-    timestamp: Date,
-  ) {
+  async markEngagedOnIncoming(userId: string, phone: string, timestamp: Date) {
     const normalizedPhone = normalizePhoneNumber(phone);
     const lead = await this.prisma.lead.findFirst({
       where: {
@@ -1072,7 +1068,7 @@ export class LeadsService {
       this.mergeLeadWithContactInsight(
         record,
         record.phone
-          ? insightByPhone.get(record.phone) ?? this.buildNewContactInsight()
+          ? (insightByPhone.get(record.phone) ?? this.buildNewContactInsight())
           : this.buildNewContactInsight(),
         decisionMakerByLeadId.get(record.id) ?? null,
       ),
@@ -1111,7 +1107,8 @@ export class LeadsService {
       qualityReasons: quality.reasons,
       bestDecisionMaker,
       preferredEmail: bestDecisionMaker?.email ?? lead.email ?? null,
-      preferredEmailType: bestDecisionMaker?.emailType ?? (lead.email ? 'LEAD' : 'NONE'),
+      preferredEmailType:
+        bestDecisionMaker?.emailType ?? (lead.email ? 'LEAD' : 'NONE'),
       phone: lead.phone ?? '',
       leadStatus: lead.status,
       status:

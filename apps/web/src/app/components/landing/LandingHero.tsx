@@ -91,7 +91,7 @@ export default function LandingHero() {
                   </div>
                 ))}
               </div>
-              <div className="flex items-center gap-2 rounded-lg bg-violet-50 px-3 py-2 text-xs text-violet-800">
+              <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
                 <MessageSquare className="h-4 w-4 shrink-0" />
                 Campaign sent to 48 warm leads · 12 replies
               </div>

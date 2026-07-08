@@ -185,9 +185,7 @@ export class JobsService {
         lockedAt: null,
         lastError:
           error instanceof Error ? error.message.slice(0, 500) : String(error),
-        runAt: exhausted
-          ? job.runAt
-          : new Date(Date.now() + attempts * 60_000),
+        runAt: exhausted ? job.runAt : new Date(Date.now() + attempts * 60_000),
       },
     });
   }

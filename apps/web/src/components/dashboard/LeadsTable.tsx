@@ -67,7 +67,7 @@ export function LeadsTable({
                 <td className="px-4 py-4 align-top">
                   {lead.bestDecisionMaker ? (
                     <div className="mb-2 rounded-lg border border-[#d7eadf] bg-[#f3fbf6] px-3 py-2">
-                      <p className="font-semibold text-[#164c3b]">
+                      <p className="font-semibold text-[#059669]">
                         {lead.bestDecisionMaker.name ?? "Decision maker"}
                       </p>
                       <p className="text-xs text-[#5e6c64]">

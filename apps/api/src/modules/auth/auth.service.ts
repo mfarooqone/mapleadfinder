@@ -9,6 +9,7 @@ import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 import { resolveMx } from 'dns/promises';
 import nodemailer from 'nodemailer';
 import { PrismaService } from '../../prisma/prisma.service';
+import { GoogleAuthDto } from './dto/google-auth.dto';
 import { LoginDto } from './dto/login.dto';
 import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 import { ResendSignupDto } from './dto/resend-signup.dto';
@@ -23,6 +24,13 @@ type AccessTokenPayload = {
   type: 'access';
   iat: number;
   exp: number;
+};
+
+type GoogleTokenInfo = {
+  aud?: string;
+  email?: string;
+  email_verified?: string | boolean;
+  name?: string;
 };
 
 const DISPOSABLE_EMAIL_DOMAINS = new Set([
@@ -355,6 +363,9 @@ export class AuthService {
     process.env.PASSWORD_RESET_CODE_TTL_MINUTES,
     10,
   );
+  private readonly googleClientIds = this.parseCsv(
+    process.env.GOOGLE_CLIENT_IDS || process.env.GOOGLE_CLIENT_ID,
+  );
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -414,17 +425,23 @@ export class AuthService {
     });
 
     if (!pending) {
-      throw new BadRequestException('No pending signup verification was found.');
+      throw new BadRequestException(
+        'No pending signup verification was found.',
+      );
     }
 
     if (pending.expiresAt.getTime() <= Date.now()) {
       await this.prisma.signupVerification.delete({ where: { email } });
-      throw new BadRequestException('Verification code expired. Sign up again.');
+      throw new BadRequestException(
+        'Verification code expired. Sign up again.',
+      );
     }
 
     if (pending.attempts >= 5) {
       await this.prisma.signupVerification.delete({ where: { email } });
-      throw new BadRequestException('Too many incorrect attempts. Sign up again.');
+      throw new BadRequestException(
+        'Too many incorrect attempts. Sign up again.',
+      );
     }
 
     if (!this.verifyCode(email, code, pending.codeHash, 'signup')) {
@@ -456,17 +473,23 @@ export class AuthService {
     });
 
     if (!pending) {
-      throw new BadRequestException('No pending signup verification was found.');
+      throw new BadRequestException(
+        'No pending signup verification was found.',
+      );
     }
 
     if (pending.expiresAt.getTime() <= Date.now()) {
       await this.prisma.signupVerification.delete({ where: { email } });
-      throw new BadRequestException('Verification code expired. Sign up again.');
+      throw new BadRequestException(
+        'Verification code expired. Sign up again.',
+      );
     }
 
     if (pending.attempts >= 5) {
       await this.prisma.signupVerification.delete({ where: { email } });
-      throw new BadRequestException('Too many incorrect attempts. Sign up again.');
+      throw new BadRequestException(
+        'Too many incorrect attempts. Sign up again.',
+      );
     }
 
     const code = this.generateVerificationCode();
@@ -565,7 +588,9 @@ export class AuthService {
 
     if (pending.attempts >= 5) {
       await this.prisma.passwordResetVerification.delete({ where: { email } });
-      throw new BadRequestException('Too many incorrect attempts. Request a new code.');
+      throw new BadRequestException(
+        'Too many incorrect attempts. Request a new code.',
+      );
     }
 
     if (!this.verifyCode(email, code, pending.codeHash, 'password-reset')) {
@@ -582,7 +607,9 @@ export class AuthService {
 
     if (!user || !user.isActive || !user.emailVerifiedAt) {
       await this.prisma.passwordResetVerification.delete({ where: { email } });
-      throw new BadRequestException('Password reset is not available for this account.');
+      throw new BadRequestException(
+        'Password reset is not available for this account.',
+      );
     }
 
     const updatedUser = await this.prisma.user.update({
@@ -594,6 +621,40 @@ export class AuthService {
     await this.prisma.passwordResetVerification.delete({ where: { email } });
 
     return this.buildAuthResponse(updatedUser);
+  }
+
+  async google(dto: GoogleAuthDto) {
+    const googleUser = await this.verifyGoogleCredential(dto.credential);
+    const email = this.normalizeEmail(googleUser.email ?? '');
+
+    if (!email) {
+      throw new UnauthorizedException(
+        'Google account did not provide an email.',
+      );
+    }
+
+    let user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      await this.assertEmailCanReceiveVerification(email);
+      user = await this.createGoogleUser({
+        email,
+        name: googleUser.name?.trim() || this.getDefaultNameFromEmail(email),
+      });
+      await this.prisma.signupVerification
+        .delete({ where: { email } })
+        .catch(() => null);
+    } else if (!user.emailVerifiedAt) {
+      user = await this.prisma.user.update({
+        where: { email },
+        data: { emailVerifiedAt: new Date() },
+      });
+    }
+
+    this.assertUserCanAccess(user);
+    return this.buildAuthResponse(user);
   }
 
   private async assertSignupEmailAvailable(email: string) {
@@ -618,6 +679,32 @@ export class AuthService {
           email: input.email,
           name: input.name,
           passwordHash: input.passwordHash,
+          role: UserRole.USER,
+          isActive: true,
+          emailVerifiedAt: new Date(),
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Email is already registered.');
+      }
+
+      throw error;
+    }
+  }
+
+  private async createGoogleUser(input: { email: string; name: string }) {
+    try {
+      return await this.prisma.user.create({
+        data: {
+          email: input.email,
+          name: input.name,
+          passwordHash: this.hashPassword(
+            randomBytes(32).toString('base64url'),
+          ),
           role: UserRole.USER,
           isActive: true,
           emailVerifiedAt: new Date(),
@@ -786,7 +873,9 @@ export class AuthService {
   }
 
   private signToken(value: string) {
-    return createHmac('sha256', this.authSecret).update(value).digest('base64url');
+    return createHmac('sha256', this.authSecret)
+      .update(value)
+      .digest('base64url');
   }
 
   private verifyPassword(password: string, passwordHash: string) {
@@ -849,7 +938,9 @@ export class AuthService {
     }
 
     if (this.isDisposableEmailDomain(domain)) {
-      throw new BadRequestException('Temporary email addresses are not allowed.');
+      throw new BadRequestException(
+        'Temporary email addresses are not allowed.',
+      );
     }
 
     const hasMailExchange = await this.hasMailExchange(domain);
@@ -904,9 +995,7 @@ export class AuthService {
     const user = process.env.SIGNUP_SMTP_USER || process.env.SMTP_USER;
     const pass = process.env.SIGNUP_SMTP_PASS || process.env.SMTP_PASS;
     const from =
-      process.env.SIGNUP_SMTP_FROM_EMAIL ||
-      process.env.SMTP_FROM_EMAIL ||
-      user;
+      process.env.SIGNUP_SMTP_FROM_EMAIL || process.env.SMTP_FROM_EMAIL || user;
 
     if (!host || !from) {
       throw new BadRequestException(
@@ -935,8 +1024,7 @@ export class AuthService {
       requiresVerification: true,
       email,
       expiresInMinutes: this.passwordResetCodeTtlMinutes,
-      note:
-        'If this email belongs to an active account, we sent a password reset code.',
+      note: 'If this email belongs to an active account, we sent a password reset code.',
     };
   }
 
@@ -959,6 +1047,53 @@ export class AuthService {
     }
 
     return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
+  }
+
+  private parseCsv(value: string | undefined) {
+    return (value ?? '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  private async verifyGoogleCredential(credential: string) {
+    if (this.googleClientIds.length === 0) {
+      throw new BadRequestException(
+        'Google sign-in is not configured. Set GOOGLE_CLIENT_ID.',
+      );
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`,
+      );
+    } catch {
+      throw new UnauthorizedException('Could not verify Google sign-in.');
+    }
+
+    const tokenInfo = (await response
+      .json()
+      .catch(() => null)) as GoogleTokenInfo | null;
+
+    if (!response.ok || !tokenInfo?.email || !tokenInfo.aud) {
+      throw new UnauthorizedException('Invalid Google sign-in token.');
+    }
+
+    if (!this.googleClientIds.includes(tokenInfo.aud)) {
+      throw new UnauthorizedException(
+        'Google sign-in token audience is invalid.',
+      );
+    }
+
+    if (
+      tokenInfo.email_verified !== true &&
+      tokenInfo.email_verified !== 'true'
+    ) {
+      throw new UnauthorizedException('Google email is not verified.');
+    }
+
+    return tokenInfo;
   }
 
   private base64UrlEncode(value: string) {

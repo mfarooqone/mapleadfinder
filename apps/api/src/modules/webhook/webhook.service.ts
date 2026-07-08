@@ -3,6 +3,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ProviderType } from '@prisma/client';
 import { normalizePhoneNumber } from '../../common/utils/phone.util';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -24,6 +25,7 @@ export class WebhookService {
     private readonly jobsService: JobsService,
     private readonly secretVaultService: SecretVaultService,
     private readonly providerRegistry: WhatsAppProviderRegistryService,
+    private readonly configService: ConfigService,
   ) {}
 
   async verifyChallenge(
@@ -68,8 +70,11 @@ export class WebhookService {
     headers: Record<string, string | string[] | undefined>,
     rawBody?: Buffer,
     userId?: string,
+    webhookSecret?: string,
   ) {
     const provider = parseProviderParam(providerParam);
+    this.validateWahaWebhookSecret(provider, webhookSecret);
+
     const providerAdapter = this.providerRegistry.get(provider);
     const events = providerAdapter.parseWebhookEvents(payload);
     const processed: Array<Record<string, string>> = [];
@@ -198,6 +203,22 @@ export class WebhookService {
       processedCount: processed.length,
       processed,
     };
+  }
+
+  private validateWahaWebhookSecret(
+    provider: ProviderType,
+    webhookSecret?: string,
+  ) {
+    if (provider !== ProviderType.WAHA) {
+      return;
+    }
+
+    const expectedSecret =
+      this.configService.get<string>('WAHA_WEBHOOK_SECRET')?.trim() || '';
+
+    if (expectedSecret && webhookSecret !== expectedSecret) {
+      throw new UnauthorizedException('Invalid WAHA webhook secret.');
+    }
   }
 
   private async resolveAccount(

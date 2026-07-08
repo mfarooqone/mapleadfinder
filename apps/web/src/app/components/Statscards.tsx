@@ -28,17 +28,17 @@ export default function StatsCards({ cards, loading = false }: StatsCardsProps) 
           <div key={card.label} className="dashboard-stat-card">
             <div className="flex items-start justify-between gap-3">
               <div
-                className="flex h-10 w-10 items-center justify-center rounded-xl"
+                className="flex h-10 w-10 items-center justify-center rounded-md"
                 style={{ background: card.bg }}
               >
                 <Icon className="h-5 w-5" style={{ color: card.accent }} />
               </div>
               {card.trend ? (
                 <span
-                  className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                  className={`inline-flex items-center gap-0.5 rounded-full border px-2 py-0.5 text-xs font-semibold ${
                     card.trendUp !== false
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "bg-red-50 text-red-600"
+                      ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+                      : "border-red-100 bg-red-50 text-red-600"
                   }`}
                 >
                   {card.trendUp !== false ? (

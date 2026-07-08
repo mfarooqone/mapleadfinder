@@ -154,7 +154,11 @@ export class MessagesService {
     });
   }
 
-  async findByConversation(userId: string, conversationId: string, limit = 100) {
+  async findByConversation(
+    userId: string,
+    conversationId: string,
+    limit = 100,
+  ) {
     const messages = await this.prisma.message.findMany({
       where: {
         conversationId,

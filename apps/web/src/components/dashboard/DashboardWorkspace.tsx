@@ -669,7 +669,7 @@ export function DashboardWorkspace() {
             onClick={() => setActiveTool(tab.id as "scraper" | "finder")}
             className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
               activeTool === tab.id
-                ? "border-[#164c3b] bg-[#164c3b] text-white"
+                ? "border-[#059669] bg-[#059669] text-white"
                 : "border-[#cbd5ca] bg-white text-[#405149] hover:bg-[#eef2ea]"
             }`}
           >
@@ -814,7 +814,7 @@ function PublicDecisionMakerFinderPanel({
               <input
                 value={keyword}
                 onChange={(event) => onKeywordChange(event.target.value)}
-                className="h-11 rounded-lg border border-[#cad1c6] px-3 outline-none transition focus:border-[#256b55] focus:ring-4 focus:ring-[#256b55]/10"
+                className="h-11 rounded-lg border border-[#cad1c6] px-3 outline-none transition focus:border-[#059669] focus:ring-4 focus:ring-[#059669]/10"
                 placeholder="gym london uk, fitness center london uk"
               />
             </label>
@@ -828,7 +828,7 @@ function PublicDecisionMakerFinderPanel({
                 max={500}
                 value={maxRecords}
                 onChange={(event) => onMaxRecordsChange(event.target.value)}
-                className="h-11 rounded-lg border border-[#cad1c6] px-3 outline-none transition focus:border-[#256b55] focus:ring-4 focus:ring-[#256b55]/10"
+                className="h-11 rounded-lg border border-[#cad1c6] px-3 outline-none transition focus:border-[#059669] focus:ring-4 focus:ring-[#059669]/10"
                 placeholder="120"
               />
             </label>
@@ -836,7 +836,7 @@ function PublicDecisionMakerFinderPanel({
               <button
                 type="submit"
                 disabled={isScraping}
-                className="h-11 rounded-lg bg-[#164c3b] px-4 font-semibold text-white transition hover:bg-[#0f3d2e] disabled:cursor-not-allowed disabled:bg-[#91a197]"
+                className="h-11 rounded-lg bg-[#059669] px-4 font-semibold text-white transition hover:bg-[#047857] disabled:cursor-not-allowed disabled:bg-[#91a197]"
               >
                 {isScraping ? "Scraping..." : "Start finder scrape"}
               </button>
@@ -854,7 +854,7 @@ function PublicDecisionMakerFinderPanel({
                 type="button"
                 onClick={onRun}
                 disabled={!leads.length || isFinding || isScraping}
-                className="h-11 rounded-lg border border-[#256b55] bg-white px-4 font-semibold text-[#256b55] transition hover:bg-[#f0faf5] disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-11 rounded-lg border border-[#059669] bg-white px-4 font-semibold text-[#059669] transition hover:bg-[#f0faf5] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isFinding ? "Finding..." : "Run on shown leads"}
               </button>
@@ -1016,7 +1016,7 @@ function PublicDecisionMakerLeadRow({ lead }: { lead: Lead }) {
       <div>
         {lead.bestDecisionMaker ? (
           <div className="rounded-lg border border-[#d7eadf] bg-[#f3fbf6] px-3 py-2">
-            <p className="font-semibold text-[#164c3b]">
+            <p className="font-semibold text-[#059669]">
               {lead.bestDecisionMaker.name ?? "Decision maker"}
             </p>
             <p className="mt-0.5 text-sm text-[#405149]">

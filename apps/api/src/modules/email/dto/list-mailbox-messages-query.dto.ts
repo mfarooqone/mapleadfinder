@@ -1,5 +1,12 @@
 import { EmailFolder } from '@prisma/client';
-import { IsBooleanString, IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
+import {
+  IsBooleanString,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  Max,
+  Min,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class ListMailboxMessagesQueryDto {

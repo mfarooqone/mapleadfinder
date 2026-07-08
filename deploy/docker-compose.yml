@@ -78,14 +78,19 @@ services:
     build:
       context: ../apps/web
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: /api/backend
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     restart: unless-stopped
     depends_on:
       - api
     networks:
+      - internal
       - traefik
     environment:
       BACKEND_API_BASE_URL: http://api:3001
       NEXT_PUBLIC_API_BASE_URL: /api/backend
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     labels:
       - traefik.enable=true
       - traefik.docker.network=${TRAEFIK_NETWORK:-traefik_public}
@@ -124,9 +129,9 @@ services:
     environment:
       WHATSAPP_DEFAULT_ENGINE: GOWS
       GODEBUG: netdns=go
-      WHATSAPP_HOOK_URL: "${PUBLIC_API_URL}/webhooks/whatsapp/waha"
+      WHATSAPP_HOOK_URL: "${PUBLIC_API_URL}/webhooks/whatsapp/waha?secret=${WAHA_WEBHOOK_SECRET:?Set WAHA_WEBHOOK_SECRET in deploy/.env}"
       WHATSAPP_HOOK_EVENTS: message,message.ack,session.status
-      WAHA_API_KEY: ${WAHA_API_KEY:-}
+      WAHA_API_KEY: ${WAHA_API_KEY:?Set WAHA_API_KEY in deploy/.env}
       WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USERNAME:-admin}
       WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD:?Set WAHA_DASHBOARD_PASSWORD in deploy/.env}
     volumes:

@@ -1,5 +1,15 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { EmailDirection, EmailFolder, JobStatus, JobType, Prisma } from '@prisma/client';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  EmailDirection,
+  EmailFolder,
+  JobStatus,
+  JobType,
+  Prisma,
+} from '@prisma/client';
 import { ImapFlow, type FetchMessageObject, type ListResponse } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -80,7 +90,8 @@ export class EmailMailboxService {
         imapSecure: dto.imapSecure,
         imapUsername: dto.imapUsername.trim(),
         imapPassword: encryptedPassword,
-        inboxFolder: dto.inboxFolder?.trim() || existing?.inboxFolder || 'INBOX',
+        inboxFolder:
+          dto.inboxFolder?.trim() || existing?.inboxFolder || 'INBOX',
         sentFolder: dto.sentFolder?.trim() || existing?.sentFolder || 'Sent',
         isActive: dto.isActive ?? true,
         lastSyncError: null,
@@ -131,7 +142,9 @@ export class EmailMailboxService {
   async syncRecentMailbox(userId: string) {
     const settings = await this.requireSettings(userId);
     if (!settings.isActive) {
-      throw new BadRequestException('Mailbox sync is inactive for this account.');
+      throw new BadRequestException(
+        'Mailbox sync is inactive for this account.',
+      );
     }
 
     const client = this.createClient(settings);
@@ -171,10 +184,7 @@ export class EmailMailboxService {
       await this.prisma.emailMessage.deleteMany({
         where: {
           userId,
-          OR: [
-            { receivedAt: { lt: cutoff } },
-            { sentAt: { lt: cutoff } },
-          ],
+          OR: [{ receivedAt: { lt: cutoff } }, { sentAt: { lt: cutoff } }],
         },
       });
       await this.prisma.emailMessage.updateMany({
@@ -224,10 +234,7 @@ export class EmailMailboxService {
         userId,
         ...(query.folder ? { folder: query.folder } : {}),
         ...(unreadOnly ? { isRead: false } : {}),
-        OR: [
-          { receivedAt: { gte: cutoff } },
-          { sentAt: { gte: cutoff } },
-        ],
+        OR: [{ receivedAt: { gte: cutoff } }, { sentAt: { gte: cutoff } }],
       },
       orderBy: [
         { receivedAt: 'desc' },
@@ -239,7 +246,9 @@ export class EmailMailboxService {
 
     return {
       windowDays: MAILBOX_WINDOW_DAYS,
-      messages: messages.map((message) => this.serializeMessage(message, false)),
+      messages: messages.map((message) =>
+        this.serializeMessage(message, false),
+      ),
     };
   }
 
@@ -274,7 +283,8 @@ export class EmailMailboxService {
       const updated = await this.prisma.emailMessage.update({
         where: { id: existing.id },
         data: {
-          textBody: this.truncate(parsed.text ?? '', MAX_CACHED_BODY_CHARS) || null,
+          textBody:
+            this.truncate(parsed.text ?? '', MAX_CACHED_BODY_CHARS) || null,
           htmlBody:
             this.truncate(
               typeof parsed.html === 'string' ? parsed.html : '',
@@ -306,9 +316,13 @@ export class EmailMailboxService {
       await client.connect();
       await client.mailboxOpen(existing.imapFolder);
       if (isRead) {
-        await client.messageFlagsAdd([existing.imapUid], ['\\Seen'], { uid: true });
+        await client.messageFlagsAdd([existing.imapUid], ['\\Seen'], {
+          uid: true,
+        });
       } else {
-        await client.messageFlagsRemove([existing.imapUid], ['\\Seen'], { uid: true });
+        await client.messageFlagsRemove([existing.imapUid], ['\\Seen'], {
+          uid: true,
+        });
       }
       const updated = await this.prisma.emailMessage.update({
         where: { id: existing.id },
@@ -332,7 +346,10 @@ export class EmailMailboxService {
     let imported = 0;
     let updated = 0;
     await input.client.mailboxOpen(input.path, { readOnly: true });
-    const uids = await input.client.search({ since: input.cutoff }, { uid: true });
+    const uids = await input.client.search(
+      { since: input.cutoff },
+      { uid: true },
+    );
     if (!uids || uids.length === 0) {
       return { imported, updated };
     }
@@ -425,11 +442,11 @@ export class EmailMailboxService {
       subject: input.message.envelope?.subject ?? null,
       sentAt:
         input.direction === EmailDirection.OUTBOUND
-          ? input.messageDate ?? null
-          : input.message.envelope?.date ?? null,
+          ? (input.messageDate ?? null)
+          : (input.message.envelope?.date ?? null),
       receivedAt:
         input.direction === EmailDirection.INBOUND
-          ? input.messageDate ?? null
+          ? (input.messageDate ?? null)
           : null,
       isRead: input.message.flags ? input.message.flags.has('\\Seen') : false,
       rawHeaders: input.message.headers
@@ -492,7 +509,8 @@ export class EmailMailboxService {
         ? {
             emailDeliveryStatus: 'BOUNCED',
             emailLastBounceAt: input.receivedAt,
-            emailLastError: input.subject ?? 'Delivery failure notice received.',
+            emailLastError:
+              input.subject ?? 'Delivery failure notice received.',
             tags,
           }
         : {
@@ -512,8 +530,9 @@ export class EmailMailboxService {
       orderBy: { updatedAt: 'desc' },
       select: { payload: true },
     });
-    const campaignId =
-      (recentCampaign?.payload as Record<string, unknown> | undefined)?.campaignId;
+    const campaignId = (
+      recentCampaign?.payload as Record<string, unknown> | undefined
+    )?.campaignId;
     if (typeof campaignId === 'string') {
       await this.refreshCampaignStats(input.userId, campaignId);
     }
@@ -584,8 +603,12 @@ export class EmailMailboxService {
       }),
     ]);
     const sent = jobs.filter((item) => item.status === JobStatus.DONE).length;
-    const failed = jobs.filter((item) => item.status === JobStatus.FAILED).length;
-    const paused = jobs.filter((item) => item.status === JobStatus.PAUSED).length;
+    const failed = jobs.filter(
+      (item) => item.status === JobStatus.FAILED,
+    ).length;
+    const paused = jobs.filter(
+      (item) => item.status === JobStatus.PAUSED,
+    ).length;
     const pending = jobs.filter(
       (item) =>
         item.status === JobStatus.PENDING ||
@@ -604,10 +627,10 @@ export class EmailMailboxService {
           paused > 0 && pending === 0
             ? 'PAUSED'
             : pending > 0
-            ? 'RUNNING'
-            : failed > 0 && sent === 0
-              ? 'FAILED'
-              : 'COMPLETED',
+              ? 'RUNNING'
+              : failed > 0 && sent === 0
+                ? 'FAILED'
+                : 'COMPLETED',
         completedAt: pending > 0 || paused > 0 ? null : new Date(),
       },
     });

@@ -18,9 +18,10 @@ export function areaCodeMatchScore(
   return score;
 }
 
-export function sortLeadsByAreaCodeProximity<
-  T extends { phone: string },
->(leads: T[], accountPhone: string): T[] {
+export function sortLeadsByAreaCodeProximity<T extends { phone: string }>(
+  leads: T[],
+  accountPhone: string,
+): T[] {
   return [...leads].sort(
     (left, right) =>
       areaCodeMatchScore(right.phone, accountPhone) -

@@ -32,8 +32,7 @@ export class SendWhatsAppMessageDto {
   messageType?: 'text' | 'voice';
 
   @ValidateIf(
-    (object) =>
-      (object.messageType ?? 'text') === 'text' && !object.templateId,
+    (object) => (object.messageType ?? 'text') === 'text' && !object.templateId,
   )
   @IsOptional()
   @IsString()

@@ -12,7 +12,9 @@ const DEFAULT_TYPING_DELAY: TypingDelayConfig = {
   jitterMs: 400,
 };
 
-export function resolveTypingDelayConfig(input?: Partial<TypingDelayConfig>): TypingDelayConfig {
+export function resolveTypingDelayConfig(
+  input?: Partial<TypingDelayConfig>,
+): TypingDelayConfig {
   return {
     minMs: input?.minMs ?? DEFAULT_TYPING_DELAY.minMs,
     maxMs: input?.maxMs ?? DEFAULT_TYPING_DELAY.maxMs,
@@ -26,7 +28,8 @@ export function calculateTypingDelayMs(
   config: TypingDelayConfig = DEFAULT_TYPING_DELAY,
 ): number {
   const length = Math.max(text.trim().length, 8);
-  const jitter = Math.floor(Math.random() * (config.jitterMs * 2 + 1)) - config.jitterMs;
+  const jitter =
+    Math.floor(Math.random() * (config.jitterMs * 2 + 1)) - config.jitterMs;
   const estimated = Math.round(length * config.msPerChar + jitter);
 
   return Math.min(config.maxMs, Math.max(config.minMs, estimated));
@@ -35,5 +38,8 @@ export function calculateTypingDelayMs(
 export function calculateVoiceTypingDelayMs(
   config: TypingDelayConfig = DEFAULT_TYPING_DELAY,
 ): number {
-  return Math.min(config.maxMs, Math.max(config.minMs, Math.round(config.minMs * 1.2)));
+  return Math.min(
+    config.maxMs,
+    Math.max(config.minMs, Math.round(config.minMs * 1.2)),
+  );
 }

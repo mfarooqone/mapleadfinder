@@ -343,6 +343,8 @@ model EmailAiSettings {
   apiKey          String?
   openaiApiKey    String?
   mistralApiKey   String?
+  openaiModel     String?
+  mistralModel    String?
   isActive        Boolean         @default(true)
   lastTestedAt    DateTime?
   lastTestError   String?

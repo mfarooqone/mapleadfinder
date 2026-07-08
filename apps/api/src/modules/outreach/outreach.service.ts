@@ -2,10 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { WhatsAppAccount } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-  OutreachConfig,
-  resolveOutreachConfig,
-} from './outreach.config';
+import { OutreachConfig, resolveOutreachConfig } from './outreach.config';
 
 export type OutreachEligibilityInput = {
   hasIncoming: boolean;
@@ -217,10 +214,7 @@ export class OutreachService {
     nextRunAt: Date,
     randomDelaySeconds: number,
   ): Date {
-    if (
-      scheduledCount > 0 &&
-      scheduledCount % this.config.packageSize === 0
-    ) {
+    if (scheduledCount > 0 && scheduledCount % this.config.packageSize === 0) {
       return new Date(
         nextRunAt.getTime() + this.config.packagePauseSeconds * 1000,
       );

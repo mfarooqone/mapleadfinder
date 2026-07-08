@@ -118,7 +118,9 @@ export class JobsProcessor {
       message.whatsappAccountId !== payload.whatsappAccountId ||
       message.conversationId !== payload.conversationId
     ) {
-      throw new Error('Queued WhatsApp message does not belong to this account.');
+      throw new Error(
+        'Queued WhatsApp message does not belong to this account.',
+      );
     }
 
     const account = await this.prisma.whatsAppAccount.findUnique({
@@ -204,7 +206,9 @@ export class JobsProcessor {
           convert: voice.convert,
         });
       } else {
-        const markSeenMessageIds = this.resolveMarkSeenMessageIds(message.metadata);
+        const markSeenMessageIds = this.resolveMarkSeenMessageIds(
+          message.metadata,
+        );
 
         result = await provider.sendTextMessage({
           account,
@@ -348,9 +352,7 @@ export class JobsProcessor {
     const failed = jobs.filter((item) => item.status === 'FAILED').length;
     const paused = jobs.filter((item) => item.status === 'PAUSED').length;
     const pending = jobs.filter(
-      (item) =>
-        item.status === 'PENDING' ||
-        item.status === 'PROCESSING',
+      (item) => item.status === 'PENDING' || item.status === 'PROCESSING',
     ).length;
 
     await this.prisma.emailCampaign.update({
@@ -365,10 +367,10 @@ export class JobsProcessor {
           paused > 0 && pending === 0
             ? 'PAUSED'
             : pending > 0
-            ? 'RUNNING'
-            : failed > 0 && sent === 0
-              ? 'FAILED'
-              : 'COMPLETED',
+              ? 'RUNNING'
+              : failed > 0 && sent === 0
+                ? 'FAILED'
+                : 'COMPLETED',
         completedAt: pending > 0 || paused > 0 ? null : new Date(),
       },
     });
@@ -444,7 +446,9 @@ export class JobsProcessor {
     }
 
     if (!smtpHost || !smtpFromEmail) {
-      throw new Error('SMTP host and from email are required for this account.');
+      throw new Error(
+        'SMTP host and from email are required for this account.',
+      );
     }
 
     const transporter = nodemailer.createTransport({
@@ -464,7 +468,9 @@ export class JobsProcessor {
     });
 
     const result = await transporter.sendMail({
-      from: smtpFromName ? `"${smtpFromName}" <${smtpFromEmail}>` : smtpFromEmail,
+      from: smtpFromName
+        ? `"${smtpFromName}" <${smtpFromEmail}>`
+        : smtpFromEmail,
       to: payload.to,
       subject,
       text: body,
@@ -474,9 +480,7 @@ export class JobsProcessor {
     const rejected = Array.isArray(result.rejected) ? result.rejected : [];
 
     if (rejected.includes(payload.to) || !accepted.includes(payload.to)) {
-      throw new Error(
-        `SMTP did not accept ${payload.to}.`,
-      );
+      throw new Error(`SMTP did not accept ${payload.to}.`);
     }
 
     try {
@@ -493,10 +497,11 @@ export class JobsProcessor {
       await this.prisma.job.update({
         where: { id: job.id },
         data: {
-          lastError: `SMTP accepted, but Sent copy failed: ${this.formatJobError(error)}`.slice(
-            0,
-            500,
-          ),
+          lastError:
+            `SMTP accepted, but Sent copy failed: ${this.formatJobError(error)}`.slice(
+              0,
+              500,
+            ),
         },
       });
     }

@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma, TemplateChannel, TemplateStatus } from '@prisma/client';
 import { renderTemplateContent } from '../../common/utils/template.util';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -73,7 +77,10 @@ export class TemplatesService {
   }
 
   async update(userId: string, id: string, dto: UpdateTemplateDto) {
-    await this.assertWhatsAppAccountBelongsToUser(userId, dto.whatsappAccountId);
+    await this.assertWhatsAppAccountBelongsToUser(
+      userId,
+      dto.whatsappAccountId,
+    );
 
     if (dto.name !== undefined) {
       await this.assertTemplateNameAvailable(userId, dto.name, id);
@@ -89,7 +96,9 @@ export class TemplatesService {
             : {}),
           ...(dto.channel !== undefined ? { channel: dto.channel } : {}),
           ...(dto.name !== undefined ? { name: dto.name } : {}),
-          ...(dto.subject !== undefined ? { subject: dto.subject || null } : {}),
+          ...(dto.subject !== undefined
+            ? { subject: dto.subject || null }
+            : {}),
           ...(dto.content !== undefined ? { content: dto.content } : {}),
           ...(dto.language !== undefined ? { language: dto.language } : {}),
           ...(dto.category !== undefined ? { category: dto.category } : {}),

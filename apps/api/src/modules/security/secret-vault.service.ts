@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+} from 'crypto';
 
 @Injectable()
 export class SecretVaultService {
@@ -20,9 +25,11 @@ export class SecretVaultService {
     ]);
     const tag = cipher.getAuthTag();
 
-    return [iv.toString('hex'), tag.toString('hex'), encrypted.toString('hex')].join(
-      ':',
-    );
+    return [
+      iv.toString('hex'),
+      tag.toString('hex'),
+      encrypted.toString('hex'),
+    ].join(':');
   }
 
   decrypt(value?: string | null): string | null {

@@ -46,8 +46,8 @@ export default function DashboardHero({
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
                 connected
-                  ? "bg-white/20 text-white"
-                  : "bg-amber-400/20 text-amber-100"
+                  ? "bg-emerald-50 text-emerald-700"
+                  : "bg-amber-50 text-amber-700"
               }`}
             >
               <span
@@ -57,16 +57,16 @@ export default function DashboardHero({
             </span>
           </div>
 
-          <h1 className="mt-4 text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
+          <h1 className="mt-4 text-2xl font-bold tracking-tight text-neutral-950 sm:text-3xl lg:text-4xl">
             Welcome back, {firstName}
           </h1>
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-emerald-50/90 sm:text-base">
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-neutral-600 sm:text-base">
             {connected
               ? `Your number ${linkedPhone ?? ""} is live. Scrape local businesses, enrich contacts, and run WhatsApp campaigns — all from one Apollo-style workspace.`
               : "Connect WhatsApp, scrape Google Maps leads, and launch outreach with anti-block pacing built in."}
           </p>
 
-          <div className="mt-5 flex flex-wrap gap-4 text-xs text-emerald-100/80">
+          <div className="mt-5 flex flex-wrap gap-4 text-xs text-neutral-500">
             <span className="inline-flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5" />
               Google Maps scraper
@@ -87,7 +87,7 @@ export default function DashboardHero({
             type="button"
             onClick={onConnect}
             disabled={loading}
-            className="btn bg-white text-emerald-800 hover:bg-emerald-50"
+            className="btn btn-primary"
           >
             {loading ? (
               <RefreshCw className="h-4 w-4 animate-spin" />
@@ -100,7 +100,7 @@ export default function DashboardHero({
             <button
               type="button"
               onClick={onLoadQr}
-              className="btn border border-white/30 bg-white/10 text-white hover:bg-white/20"
+              className="btn btn-secondary"
             >
               <QrCode className="h-4 w-4" />
               Scan QR code
@@ -109,7 +109,7 @@ export default function DashboardHero({
           <button
             type="button"
             onClick={onJumpToTest}
-            className="btn border border-white/20 bg-transparent text-white hover:bg-white/10"
+            className="btn btn-secondary"
           >
             Launch campaign
           </button>

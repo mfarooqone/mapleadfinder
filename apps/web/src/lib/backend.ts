@@ -574,17 +574,26 @@ export type EmailAiSettings = {
   id?: string;
   provider?: EmailAiProvider;
   hasApiKey?: boolean;
+  openaiModel?: string;
+  mistralModel?: string;
   providerKeys?: Record<EmailAiProvider, boolean>;
   isActive?: boolean;
   lastTestedAt?: string | null;
   lastTestError?: string | null;
   updatedAt?: string;
+  models?: {
+    OPENAI: string;
+    MISTRAL: string;
+    options?: Record<EmailAiProvider, string[]>;
+  };
   providers: Array<{ value: EmailAiProvider; label: string }>;
 };
 
 export type EmailAiSettingsPayload = {
   provider: EmailAiProvider;
   apiKey?: string;
+  openaiModel?: string;
+  mistralModel?: string;
   isActive?: boolean;
 };
 

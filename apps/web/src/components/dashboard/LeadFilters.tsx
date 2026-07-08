@@ -61,7 +61,7 @@ export function LeadFilters({
                 onClick={() => onSelectedBatchChange(batch.id)}
                 className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
                   selectedBatchId === batch.id
-                    ? "border-[#164c3b] bg-[#164c3b] text-white"
+                    ? "border-[#059669] bg-[#059669] text-white"
                     : "border-[#cbd5ca] bg-[#fbfcf9] text-[#405149] hover:bg-[#eef2ea]"
                 }`}
               >
@@ -79,7 +79,7 @@ export function LeadFilters({
         <input
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
-          className="h-11 rounded-lg border border-[#cad1c6] px-3 outline-none transition focus:border-[#256b55] focus:ring-4 focus:ring-[#256b55]/10"
+          className="h-11 rounded-lg border border-[#cad1c6] px-3 outline-none transition focus:border-[#059669] focus:ring-4 focus:ring-[#059669]/10"
           placeholder="name, category, address"
         />
       </label>
@@ -88,7 +88,7 @@ export function LeadFilters({
         <input
           value={ratingLt}
           onChange={(event) => onRatingLtChange(event.target.value)}
-          className="h-11 rounded-lg border border-[#cad1c6] px-3 outline-none transition focus:border-[#256b55] focus:ring-4 focus:ring-[#256b55]/10"
+          className="h-11 rounded-lg border border-[#cad1c6] px-3 outline-none transition focus:border-[#059669] focus:ring-4 focus:ring-[#059669]/10"
           inputMode="decimal"
           placeholder="4"
         />
@@ -98,7 +98,7 @@ export function LeadFilters({
         <select
           value={hasWebsite}
           onChange={(event) => onHasWebsiteChange(event.target.value)}
-          className="h-11 rounded-lg border border-[#cad1c6] px-3 outline-none transition focus:border-[#256b55] focus:ring-4 focus:ring-[#256b55]/10"
+          className="h-11 rounded-lg border border-[#cad1c6] px-3 outline-none transition focus:border-[#059669] focus:ring-4 focus:ring-[#059669]/10"
         >
           <option value="all">All</option>
           <option value="true">Has website</option>
@@ -114,7 +114,7 @@ export function LeadFilters({
       <button
         onClick={() => downloadCsv(leads)}
         disabled={leads.length === 0}
-        className="h-11 self-end rounded-lg bg-[#23332d] px-4 font-semibold text-white transition hover:bg-[#17241f] disabled:cursor-not-allowed disabled:bg-[#9aa59f]"
+        className="h-11 self-end rounded-lg bg-[#059669] px-4 font-semibold text-white transition hover:bg-[#047857] disabled:cursor-not-allowed disabled:bg-[#9aa59f]"
       >
         Download CSV
       </button>

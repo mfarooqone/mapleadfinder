@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import { postJson } from "@/lib/backend";
 import AuthLayout from "./AuthLayout";
+import GoogleAuthButton from "./GoogleAuthButton";
 import {
   clearAuthSession,
   getAuthCookieToken,
@@ -17,6 +18,7 @@ import {
 
 export default function LoginPage() {
   const router = useRouter();
+  const googleEnabled = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -87,6 +89,21 @@ export default function LoginPage() {
       title="Sign in to MapLeadFinder"
       subtitle="Use your email and password"
     >
+      {googleEnabled ? (
+        <div className="mb-5 space-y-4">
+          <GoogleAuthButton
+            mode="signin"
+            onSuccess={() => router.replace("/dashboard")}
+            onError={setSubmitError}
+          />
+          <div className="flex items-center gap-3 text-xs text-neutral-400">
+            <span className="h-px flex-1 bg-neutral-200" />
+            <span>or</span>
+            <span className="h-px flex-1 bg-neutral-200" />
+          </div>
+        </div>
+      ) : null}
+
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
             <label htmlFor="email" className="label">

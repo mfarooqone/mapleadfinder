@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { startTransition, useEffect, useMemo, useState } from "react";
-import { getAuthUser } from "@/lib/auth";
+import { getAuthUser, type AuthUser } from "@/lib/auth";
 import { postJson } from "@/lib/backend";
 import ActivityJobsPanel from "./Activityjobspanel";
 import AppShell from "./AppShell";
@@ -46,7 +46,11 @@ export default function OverviewWorkspace() {
   const [refreshing, setRefreshing] = useState(false);
   const [bootstrapping, setBootstrapping] = useState(false);
   const [banner, setBanner] = useState<BannerState>(null);
-  const authUser = useMemo(() => getAuthUser(), []);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    setAuthUser(getAuthUser());
+  }, []);
 
   const applySummary = (
     data: Awaited<ReturnType<typeof fetchDashboardSummary>>,

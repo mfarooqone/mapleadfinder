@@ -89,7 +89,7 @@ const tagTones = [
   "bg-emerald-100 text-emerald-700",
   "bg-sky-100 text-sky-700",
   "bg-amber-100 text-amber-700",
-  "bg-violet-100 text-violet-700",
+  "bg-teal-100 text-teal-700",
 ];
 
 export default function LeadsTable({ leads }: LeadsTableProps) {
@@ -145,28 +145,24 @@ export default function LeadsTable({ leads }: LeadsTableProps) {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 px-4 py-4 sm:px-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 bg-white px-4 py-3 sm:px-5">
         <label className="relative block min-w-[200px] flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search leads"
-            className="input pl-9"
+            placeholder="Search by name, phone, email, or tag"
+            className="input bg-neutral-50 pl-9"
           />
         </label>
 
-        <div className="flex rounded-lg border border-neutral-200 bg-neutral-50 p-0.5">
+        <div className="segmented">
           {(["ALL", "OPTED_IN", "NEW", "ENGAGED"] as const).map((item) => (
             <button
               key={item}
               type="button"
               onClick={() => setStatusFilter(item)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
-                statusFilter === item
-                  ? "bg-white text-neutral-900 shadow-sm"
-                  : "text-neutral-500 hover:text-neutral-700"
-              }`}
+              className={`segmented-btn ${statusFilter === item ? "active" : ""}`}
             >
               {item === "ALL"
                 ? "All"
@@ -181,16 +177,16 @@ export default function LeadsTable({ leads }: LeadsTableProps) {
       </div>
 
       {selectedCount > 0 ? (
-        <div className="border-b border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm text-neutral-600 sm:px-5">
-          {selectedCount} selected
+        <div className="border-b border-emerald-100 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800 sm:px-5">
+          {selectedCount} selected for action
         </div>
       ) : null}
 
       {filteredLeads.length > 0 ? (
         <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead className="bg-neutral-50">
-              <tr className="border-b border-neutral-200">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr>
                 <th className="px-4 py-3 sm:px-5">
                   <input
                     type="checkbox"
@@ -199,42 +195,42 @@ export default function LeadsTable({ leads }: LeadsTableProps) {
                     className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                   />
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-neutral-500">
+                <th className="px-3 py-3 text-left">
                   Contact
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-neutral-500">
+                <th className="px-3 py-3 text-left">
                   Phone
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-neutral-500">
+                <th className="px-3 py-3 text-left">
                   Status
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-neutral-500">
+                <th className="px-3 py-3 text-left">
                   Quality
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-neutral-500">
+                <th className="px-3 py-3 text-left">
                   Email
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-neutral-500">
+                <th className="px-3 py-3 text-left">
                   Warm-up
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-neutral-500">
+                <th className="px-3 py-3 text-left">
                   Tags
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-neutral-500">
+                <th className="px-3 py-3 text-left">
                   Consent
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-neutral-500">
+                <th className="px-3 py-3 text-left">
                   Added
                 </th>
                 <th className="px-3 py-3" />
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-neutral-100">
               {filteredLeads.map((lead) => (
                 <tr
                   key={lead.id}
-                  className={`border-b border-neutral-100 transition hover:bg-neutral-50 ${
-                    selectedIds.includes(lead.id) ? "bg-green-50/50" : ""
+                  className={`transition ${
+                    selectedIds.includes(lead.id) ? "bg-emerald-50/70" : "bg-white"
                   }`}
                 >
                   <td className="px-4 py-3 sm:px-5">
@@ -247,7 +243,7 @@ export default function LeadsTable({ leads }: LeadsTableProps) {
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-600 text-xs font-medium text-white">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-emerald-600 text-xs font-bold text-white">
                         {getInitials(lead.name)}
                       </div>
                       <div className="min-w-0">
@@ -260,7 +256,7 @@ export default function LeadsTable({ leads }: LeadsTableProps) {
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-sm font-medium text-slate-600">
+                  <td className="px-4 py-4 text-sm font-semibold text-slate-600">
                     {lead.phone}
                   </td>
                   <td className="px-3 py-3">
@@ -295,13 +291,13 @@ export default function LeadsTable({ leads }: LeadsTableProps) {
                         lead.tags.map((tag, index) => (
                           <span
                             key={`${lead.id}-${tag}`}
-                            className={`rounded-full px-3 py-1 text-xs font-semibold ${tagTones[index % tagTones.length]}`}
+                            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${tagTones[index % tagTones.length]}`}
                           >
                             {tag}
                           </span>
                         ))
                       ) : (
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+                        <span className="badge badge-neutral">
                           No tags
                         </span>
                       )}
@@ -327,7 +323,7 @@ export default function LeadsTable({ leads }: LeadsTableProps) {
                     {formatRelativeDate(lead.createdAt)}
                   </td>
                   <td className="px-3 py-3">
-                    <button className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+                    <button className="rounded-md p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600" aria-label="Lead actions">
                       <MoreHorizontal className="h-4 w-4" />
                     </button>
                   </td>

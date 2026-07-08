@@ -176,43 +176,46 @@ export class BaileysSessionService implements OnModuleDestroy {
     state.phoneNumber = this.extractPhoneNumber(socket.user?.id);
 
     socket.ev.on('creds.update', saveCreds);
-    socket.ev.on('connection.update', async (update: Partial<ConnectionState>) => {
-      if (update.qr) {
-        state.qr = update.qr;
-        state.qrDataUrl = await toDataURL(update.qr, {
-          margin: 1,
-          scale: 6,
-        });
-        state.status = 'qr';
-      }
-
-      if (update.connection === 'open') {
-        state.status = 'open';
-        state.qr = undefined;
-        state.qrDataUrl = undefined;
-        state.phoneNumber = this.extractPhoneNumber(socket.user?.id);
-      }
-
-      if (update.connection === 'close') {
-        state.status = 'close';
-        state.lastError =
-          update.lastDisconnect?.error instanceof Error
-            ? update.lastDisconnect.error.message
-            : undefined;
-
-        const statusCode = (
-          update.lastDisconnect?.error as
-            | { output?: { statusCode?: DisconnectReason | number } }
-            | undefined
-        )?.output?.statusCode;
-
-        if (statusCode !== baileys.DisconnectReason.loggedOut) {
-          state.connecting = this.connect(key, state);
-          await state.connecting.catch(() => undefined);
-          state.connecting = undefined;
+    socket.ev.on(
+      'connection.update',
+      async (update: Partial<ConnectionState>) => {
+        if (update.qr) {
+          state.qr = update.qr;
+          state.qrDataUrl = await toDataURL(update.qr, {
+            margin: 1,
+            scale: 6,
+          });
+          state.status = 'qr';
         }
-      }
-    });
+
+        if (update.connection === 'open') {
+          state.status = 'open';
+          state.qr = undefined;
+          state.qrDataUrl = undefined;
+          state.phoneNumber = this.extractPhoneNumber(socket.user?.id);
+        }
+
+        if (update.connection === 'close') {
+          state.status = 'close';
+          state.lastError =
+            update.lastDisconnect?.error instanceof Error
+              ? update.lastDisconnect.error.message
+              : undefined;
+
+          const statusCode = (
+            update.lastDisconnect?.error as
+              | { output?: { statusCode?: DisconnectReason | number } }
+              | undefined
+          )?.output?.statusCode;
+
+          if (statusCode !== baileys.DisconnectReason.loggedOut) {
+            state.connecting = this.connect(key, state);
+            await state.connecting.catch(() => undefined);
+            state.connecting = undefined;
+          }
+        }
+      },
+    );
 
     return state;
   }

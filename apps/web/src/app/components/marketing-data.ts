@@ -35,9 +35,9 @@ export type LandingStep = {
 export type LandingPricingTier = {
   id: string;
   name: string;
-  monthlyPrice: number;
-  annualMonthlyPrice: number;
-  annualTotal: number;
+  price: number;
+  period: string;
+  note?: string;
   description: string;
   features: string[];
   highlighted?: boolean;
@@ -210,9 +210,8 @@ export const LANDING_PRICING: LandingPricingTier[] = [
   {
     id: "starter",
     name: "Starter",
-    monthlyPrice: 0,
-    annualMonthlyPrice: 0,
-    annualTotal: 0,
+    price: 0,
+    period: "forever",
     description: "For solo reps testing local outreach.",
     features: [
       "500 leads / month",
@@ -226,10 +225,10 @@ export const LANDING_PRICING: LandingPricingTier[] = [
   {
     id: "pro",
     name: "Pro",
-    monthlyPrice: 10,
-    annualMonthlyPrice: 8,
-    annualTotal: 96,
-    description: "For growing teams running daily campaigns.",
+    price: 20,
+    period: "lifetime",
+    note: "One-time payment",
+    description: "For daily lead generation and outreach.",
     highlighted: true,
     features: [
       "Unlimited leads",
@@ -237,26 +236,9 @@ export const LANDING_PRICING: LandingPricingTier[] = [
       "Warm-up & pacing controls",
       "Email outreach + SMTP",
       "Priority support",
-      "Team inbox",
+      "Unified inbox",
     ],
-    cta: "Start Pro trial",
-  },
-  {
-    id: "team",
-    name: "Team",
-    monthlyPrice: 20,
-    annualMonthlyPrice: 16,
-    annualTotal: 192,
-    description: "For agencies and multi-rep sales floors.",
-    features: [
-      "Everything in Pro",
-      "Up to 10 WhatsApp numbers",
-      "Shared lead pools",
-      "Leaderboard & analytics",
-      "Dedicated onboarding",
-      "SLA support",
-    ],
-    cta: "Contact sales",
+    cta: "Get lifetime access",
   },
 ];
 
@@ -272,9 +254,9 @@ export const LANDING_FAQ: LandingFaqItem[] = [
       "Enter a business keyword and location. Our Playwright-powered scraper collects listings from Google Maps and saves them to your lead database with phone, rating, and address.",
   },
   {
-    question: "Can multiple team members use one account?",
+    question: "Can I use more than one WhatsApp number?",
     answer:
-      "Each login maps to one WhatsApp number and scoped data. Team plans support multiple users with separate numbers and shared lead visibility.",
+      "Each login maps to one WhatsApp number and scoped data. Create a separate login when you need another number.",
   },
   {
     question: "Do you support email outreach too?",
@@ -367,7 +349,7 @@ export function buildPipelineStages({
       label: "Contactable",
       value: optedInCount,
       pct: Math.round((optedInCount / scraped) * 100),
-      color: "bg-violet-500",
+      color: "bg-teal-500",
     },
     {
       label: "Messaged",

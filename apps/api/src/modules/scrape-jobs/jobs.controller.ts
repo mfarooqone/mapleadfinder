@@ -71,11 +71,7 @@ export class JobsController {
     @Param('batchId') batchId: string,
     @Param('leadId') leadId: string,
   ) {
-    return this.jobsService.removeLeadFromScrapeBatch(
-      user.id,
-      batchId,
-      leadId,
-    );
+    return this.jobsService.removeLeadFromScrapeBatch(user.id, batchId, leadId);
   }
 
   @Get(':jobId')

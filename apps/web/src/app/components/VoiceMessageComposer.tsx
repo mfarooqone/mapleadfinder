@@ -70,7 +70,7 @@ export default function VoiceMessageComposer({
         <code className="font-mono">POST /whatsapp/voice/send</code>{" "}
         (URL or base64 file). OGG/Opus works best for WhatsApp voice-note playback.
       </p>
-      <p className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-900">
+      <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-900">
         <strong>Baileys voice enabled.</strong> This path uses a free linked-device
         WhatsApp Web session, not WAHA Plus. For MP3/WAV, convert the file to
         OGG/Opus before uploading. Do not use a sample URL here; upload or paste
@@ -94,17 +94,17 @@ export default function VoiceMessageComposer({
             value={recipientPhone}
             onChange={(event) => onRecipientPhoneChange(event.target.value)}
             placeholder="+1234567890"
-            className="mt-3 w-full rounded-2xl border border-violet-100 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-violet-300 focus:bg-white"
+            className="mt-3 w-full rounded-md border border-emerald-100 bg-neutral-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-emerald-300 focus:bg-white"
           />
         </div>
 
-        <div className="flex gap-2 rounded-2xl border border-violet-100 bg-slate-50 p-1">
+        <div className="flex gap-2 rounded-md border border-emerald-100 bg-emerald-50/60 p-1">
           <button
             type="button"
             onClick={() => onSourceModeChange("url")}
-            className={`inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+            className={`inline-flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-semibold transition ${
               sourceMode === "url"
-                ? "bg-white text-violet-700 shadow-sm"
+                ? "bg-white text-emerald-700 shadow-sm"
                 : "text-slate-500 hover:text-slate-700"
             }`}
           >
@@ -114,9 +114,9 @@ export default function VoiceMessageComposer({
           <button
             type="button"
             onClick={() => onSourceModeChange("file")}
-            className={`inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+            className={`inline-flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-semibold transition ${
               sourceMode === "file"
-                ? "bg-white text-violet-700 shadow-sm"
+                ? "bg-white text-emerald-700 shadow-sm"
                 : "text-slate-500 hover:text-slate-700"
             }`}
           >
@@ -134,7 +134,7 @@ export default function VoiceMessageComposer({
               value={voiceUrl}
               onChange={(event) => onVoiceUrlChange(event.target.value)}
               placeholder="https://example.com/voice.opus"
-              className="mt-3 w-full rounded-2xl border border-violet-100 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-violet-300 focus:bg-white"
+              className="mt-3 w-full rounded-md border border-emerald-100 bg-neutral-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-emerald-300 focus:bg-white"
             />
           </div>
         ) : (
@@ -150,7 +150,7 @@ export default function VoiceMessageComposer({
                   const file = event.target.files?.[0];
                   if (file) onFileSelect(file);
                 }}
-                className="mt-3 w-full rounded-2xl border border-dashed border-violet-200 bg-violet-50/50 px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-xl file:border-0 file:bg-violet-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
+                className="mt-3 w-full rounded-md border border-dashed border-emerald-200 bg-emerald-50/50 px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-md file:border-0 file:bg-emerald-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
               />
               {voiceData ? (
                 <p className="mt-2 text-xs text-emerald-600">
@@ -166,7 +166,7 @@ export default function VoiceMessageComposer({
                 value={filename}
                 onChange={(event) => onFilenameChange(event.target.value)}
                 placeholder="voice-message.opus"
-                className="mt-3 w-full rounded-2xl border border-violet-100 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-violet-300 focus:bg-white"
+                className="mt-3 w-full rounded-md border border-emerald-100 bg-neutral-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-emerald-300 focus:bg-white"
               />
             </div>
           </>
@@ -180,16 +180,16 @@ export default function VoiceMessageComposer({
             value={mimetype}
             onChange={(event) => onMimetypeChange(event.target.value)}
             placeholder="audio/ogg; codecs=opus"
-            className="mt-3 w-full rounded-2xl border border-violet-100 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-violet-300 focus:bg-white"
+            className="mt-3 w-full rounded-md border border-emerald-100 bg-neutral-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-emerald-300 focus:bg-white"
           />
         </div>
 
-        <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
+        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-emerald-100 bg-emerald-50/60 p-4">
           <input
             type="checkbox"
             checked={convert}
             onChange={(event) => onConvertChange(event.target.checked)}
-            className="mt-1 h-4 w-4 rounded border-violet-300 text-violet-600"
+            className="mt-1 h-4 w-4 rounded border-emerald-300 text-emerald-600"
           />
           <span>
             <span className="text-sm font-semibold text-slate-900">
@@ -202,13 +202,13 @@ export default function VoiceMessageComposer({
           </span>
         </label>
 
-        <div className="rounded-[22px] border border-slate-200 bg-slate-50 p-4">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
             Preview
           </p>
-          <div className="mt-3 flex items-center gap-3 rounded-[20px] bg-white p-4 shadow-sm">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-violet-100">
-              <Mic className="h-5 w-5 text-violet-600" />
+          <div className="mt-3 flex items-center gap-3 rounded-lg bg-white p-4 shadow-sm">
+            <div className="flex h-11 w-11 items-center justify-center rounded-md bg-emerald-100">
+              <Mic className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
               <p className="text-sm font-semibold text-slate-800">Voice message</p>
@@ -226,7 +226,7 @@ export default function VoiceMessageComposer({
           type="button"
           onClick={onSend}
           disabled={!canSend}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,_#7c3aed,_#6d28d9)] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(109,40,217,0.28)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+          className="btn btn-primary w-full"
         >
           {sending ? (
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />

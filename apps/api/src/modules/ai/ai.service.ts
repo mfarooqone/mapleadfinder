@@ -19,11 +19,19 @@ export class AiService {
       return 'Thanks for reaching out. Please share a little more detail so our team can help you.';
     }
 
-    if (['stop', 'unsubscribe', 'cancel', 'end', 'quit'].some((word) => message.includes(word))) {
+    if (
+      ['stop', 'unsubscribe', 'cancel', 'end', 'quit'].some((word) =>
+        message.includes(word),
+      )
+    ) {
       return 'Understood. We have marked this number as opted out and will stop follow-up messages. Reply START anytime to reconnect.';
     }
 
-    if (message.includes('price') || message.includes('cost') || message.includes('charges')) {
+    if (
+      message.includes('price') ||
+      message.includes('cost') ||
+      message.includes('charges')
+    ) {
       return 'Thanks for your interest. Please share what product or service you want pricing for, and we will send a tailored quote.';
     }
 

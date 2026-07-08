@@ -40,7 +40,7 @@ export default function DashboardRecentLeads({
           ))}
         </div>
       ) : recent.length === 0 ? (
-        <div className="mt-8 rounded-xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-10 text-center">
+        <div className="mt-8 rounded-lg border border-dashed border-neutral-200 bg-neutral-50 px-4 py-10 text-center">
           <MapPin className="mx-auto h-8 w-8 text-neutral-300" />
           <p className="mt-3 text-sm font-medium text-neutral-700">No leads yet</p>
           <p className="mt-1 text-xs text-neutral-500">
@@ -54,7 +54,7 @@ export default function DashboardRecentLeads({
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[480px] text-left text-sm">
             <thead>
-              <tr className="border-b border-neutral-100 text-xs uppercase tracking-wide text-neutral-400">
+              <tr>
                 <th className="pb-2 font-semibold">Business</th>
                 <th className="pb-2 font-semibold">Category</th>
                 <th className="pb-2 font-semibold">Rating</th>
@@ -65,7 +65,7 @@ export default function DashboardRecentLeads({
               {recent.map((lead) => (
                 <tr
                   key={lead.id}
-                  className="border-b border-neutral-50 last:border-0"
+                  className="last:border-0"
                 >
                   <td className="py-3 pr-3">
                     <p className="font-medium text-neutral-900">

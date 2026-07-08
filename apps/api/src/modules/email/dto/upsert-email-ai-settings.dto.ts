@@ -17,6 +17,16 @@ export class UpsertEmailAiSettingsDto {
   apiKey?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  openaiModel?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  mistralModel?: string;
+
+  @IsOptional()
   @IsBoolean()
   isActive?: boolean;
 }

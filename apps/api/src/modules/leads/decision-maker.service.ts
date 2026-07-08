@@ -79,7 +79,9 @@ export class DecisionMakerService {
   constructor(private readonly prisma: PrismaService) {}
 
   async enrichLeads(userId: string, leadIds: string[]) {
-    const uniqueIds = [...new Set(leadIds.map((id) => id.trim()))].filter(Boolean);
+    const uniqueIds = [...new Set(leadIds.map((id) => id.trim()))].filter(
+      Boolean,
+    );
     const leads = await this.prisma.lead.findMany({
       where: { userId, id: { in: uniqueIds }, isDeleted: false },
     });
@@ -103,11 +105,18 @@ export class DecisionMakerService {
   async listForLead(userId: string, leadId: string) {
     return this.prisma.leadDecisionMaker.findMany({
       where: { userId, leadId },
-      orderBy: [{ isBest: 'desc' }, { confidence: 'desc' }, { updatedAt: 'desc' }],
+      orderBy: [
+        { isBest: 'desc' },
+        { confidence: 'desc' },
+        { updatedAt: 'desc' },
+      ],
     });
   }
 
-  private async enrichLead(userId: string, lead: Lead): Promise<EnrichmentResult> {
+  private async enrichLead(
+    userId: string,
+    lead: Lead,
+  ): Promise<EnrichmentResult> {
     const baseUrl = this.normalizeUrl(lead.website);
     if (!baseUrl) {
       await this.clearBest(userId, lead.id);
@@ -159,7 +168,9 @@ export class DecisionMakerService {
       website: lead.website,
       best,
       candidates: candidates.slice(0, 5),
-      note: best ? 'Decision-maker candidate found.' : 'No decision-maker found.',
+      note: best
+        ? 'Decision-maker candidate found.'
+        : 'No decision-maker found.',
     };
   }
 
@@ -248,7 +259,9 @@ export class DecisionMakerService {
       ...pages.flatMap((page) =>
         page.emails.map((email) => ({ email, sourceUrl: page.url })),
       ),
-      ...(lead.email ? [{ email: lead.email, sourceUrl: lead.website ?? '' }] : []),
+      ...(lead.email
+        ? [{ email: lead.email, sourceUrl: lead.website ?? '' }]
+        : []),
     ];
 
     for (const row of allEmails) {
@@ -313,14 +326,18 @@ export class DecisionMakerService {
   }
 
   private findNearestPersonalEmail(emails: string[], name?: string | null) {
-    const personal = emails.find((email) => this.classifyEmail(email) === 'PERSONAL');
+    const personal = emails.find(
+      (email) => this.classifyEmail(email) === 'PERSONAL',
+    );
     if (!name || !personal) return personal ?? null;
 
     const tokens = name.toLowerCase().split(/\s+/).filter(Boolean);
     return (
       emails.find((email) => {
         const local = email.toLowerCase().split('@')[0];
-        return tokens.some((token) => token.length > 2 && local.includes(token));
+        return tokens.some(
+          (token) => token.length > 2 && local.includes(token),
+        );
       }) ?? personal
     );
   }
@@ -337,13 +354,20 @@ export class DecisionMakerService {
     if (candidate.email) {
       score += this.classifyEmail(candidate.email) === 'PERSONAL' ? 30 : 10;
     }
-    if (/team|about|leadership|management/i.test(candidate.sourceUrl)) score += 10;
+    if (/team|about|leadership|management/i.test(candidate.sourceUrl))
+      score += 10;
     return Math.min(100, score);
   }
 
   private classifyEmail(email: string) {
-    const local = email.toLowerCase().split('@')[0].replace(/[^a-z0-9._-]/g, '');
-    if (GENERIC_PREFIXES.has(local) || GENERIC_PREFIXES.has(local.split(/[._-]/)[0])) {
+    const local = email
+      .toLowerCase()
+      .split('@')[0]
+      .replace(/[^a-z0-9._-]/g, '');
+    if (
+      GENERIC_PREFIXES.has(local) ||
+      GENERIC_PREFIXES.has(local.split(/[._-]/)[0])
+    ) {
       return 'GENERIC';
     }
     if (/manager|director|marketing|owner|founder|practice/.test(local)) {
@@ -393,7 +417,9 @@ export class DecisionMakerService {
   }
 
   private async clearBest(userId: string, leadId: string) {
-    await this.prisma.leadDecisionMaker.deleteMany({ where: { userId, leadId } });
+    await this.prisma.leadDecisionMaker.deleteMany({
+      where: { userId, leadId },
+    });
   }
 
   private async updateLeadQualityFromDecisionMaker(
@@ -410,7 +436,10 @@ export class DecisionMakerService {
       where: { id: lead.id, userId },
       data: {
         tags: [...tags],
-        qualityScore: Math.min(100, Math.max(lead.qualityScore, best?.confidence ?? 0)),
+        qualityScore: Math.min(
+          100,
+          Math.max(lead.qualityScore, best?.confidence ?? 0),
+        ),
         qualityReasons: Array.from(
           new Set([
             ...lead.qualityReasons,

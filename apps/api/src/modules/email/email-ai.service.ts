@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { EmailAiProvider, Lead } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SecretVaultService } from '../security/secret-vault.service';
@@ -14,6 +18,21 @@ type PersonalizeInput = {
 type PersonalizedEmail = {
   subject: string;
   body: string;
+};
+
+type EmailAiSettingsLike = {
+  id?: string;
+  provider: EmailAiProvider;
+  apiKey?: string | null;
+  openaiApiKey?: string | null;
+  mistralApiKey?: string | null;
+  openaiModel?: string | null;
+  mistralModel?: string | null;
+  isActive?: boolean;
+};
+
+type UsableEmailAiSettings = EmailAiSettingsLike & {
+  persisted: boolean;
 };
 
 @Injectable()
@@ -33,25 +52,49 @@ export class EmailAiService {
     });
 
     if (!settings) {
+      const provider = this.defaultProviderFromEnv();
+      const hasOpenAiKey = this.hasProviderKey(
+        { provider },
+        EmailAiProvider.OPENAI,
+      );
+      const hasMistralKey = this.hasProviderKey(
+        { provider },
+        EmailAiProvider.MISTRAL,
+      );
+      const hasActiveKey = this.hasProviderKey({ provider }, provider);
+
       return {
-        configured: false,
-        hasApiKey: false,
+        configured: hasActiveKey,
+        provider,
+        hasApiKey: hasActiveKey,
+        openaiModel: this.openAiModel,
+        mistralModel: this.mistralModel,
         providerKeys: {
-          OPENAI: false,
-          MISTRAL: false,
+          OPENAI: hasOpenAiKey,
+          MISTRAL: hasMistralKey,
         },
+        isActive: true,
+        models: this.models(),
         providers: this.providers(),
       };
     }
-    const activeApiKey = this.getEncryptedApiKey(settings);
+    const activeApiKey = this.resolveApiKey(settings);
     const hasOpenAiKey = this.hasProviderKey(settings, EmailAiProvider.OPENAI);
-    const hasMistralKey = this.hasProviderKey(settings, EmailAiProvider.MISTRAL);
+    const hasMistralKey = this.hasProviderKey(
+      settings,
+      EmailAiProvider.MISTRAL,
+    );
 
     return {
       configured: Boolean(activeApiKey),
       id: settings.id,
       provider: settings.provider,
       hasApiKey: Boolean(activeApiKey),
+      openaiModel: this.normalizeModel(settings.openaiModel, this.openAiModel),
+      mistralModel: this.normalizeModel(
+        settings.mistralModel,
+        this.mistralModel,
+      ),
       providerKeys: {
         OPENAI: hasOpenAiKey,
         MISTRAL: hasMistralKey,
@@ -60,6 +103,7 @@ export class EmailAiService {
       lastTestedAt: settings.lastTestedAt?.toISOString() ?? null,
       lastTestError: settings.lastTestError,
       updatedAt: settings.updatedAt.toISOString(),
+      models: this.models(),
       providers: this.providers(),
     };
   }
@@ -73,7 +117,9 @@ export class EmailAiService {
         ? this.secretVaultService.encrypt(dto.apiKey.trim())
         : undefined;
     const providerKeyField =
-      dto.provider === EmailAiProvider.MISTRAL ? 'mistralApiKey' : 'openaiApiKey';
+      dto.provider === EmailAiProvider.MISTRAL
+        ? 'mistralApiKey'
+        : 'openaiApiKey';
     const existingProviderKeyField =
       existing?.provider === EmailAiProvider.MISTRAL
         ? 'mistralApiKey'
@@ -90,6 +136,8 @@ export class EmailAiService {
         provider: dto.provider,
         apiKey: encryptedApiKey ?? null,
         ...(encryptedApiKey ? { [providerKeyField]: encryptedApiKey } : {}),
+        openaiModel: this.normalizeModel(dto.openaiModel, this.openAiModel),
+        mistralModel: this.normalizeModel(dto.mistralModel, this.mistralModel),
         isActive: dto.isActive ?? true,
         lastTestError: null,
       },
@@ -98,6 +146,8 @@ export class EmailAiService {
         apiKey: encryptedApiKey ?? existing?.apiKey ?? null,
         ...migratedLegacyKey,
         ...(encryptedApiKey ? { [providerKeyField]: encryptedApiKey } : {}),
+        openaiModel: this.normalizeModel(dto.openaiModel, this.openAiModel),
+        mistralModel: this.normalizeModel(dto.mistralModel, this.mistralModel),
         isActive: dto.isActive ?? true,
         lastTestError: null,
       },
@@ -152,13 +202,15 @@ export class EmailAiService {
     try {
       await this.personalizeWithSettings(settings, input);
       const testedAt = new Date();
-      await this.prisma.emailAiSettings.update({
-        where: { userId },
-        data: {
-          lastTestedAt: testedAt,
-          lastTestError: null,
-        },
-      });
+      if (settings.persisted) {
+        await this.prisma.emailAiSettings.update({
+          where: { userId },
+          data: {
+            lastTestedAt: testedAt,
+            lastTestError: null,
+          },
+        });
+      }
 
       return {
         ok: true,
@@ -167,11 +219,15 @@ export class EmailAiService {
       };
     } catch (error) {
       const message = this.errorMessage(error);
-      await this.prisma.emailAiSettings.update({
-        where: { userId },
-        data: { lastTestError: message.slice(0, 500) },
-      });
-      throw new BadRequestException(`AI personalization test failed: ${message}`);
+      if (settings.persisted) {
+        await this.prisma.emailAiSettings.update({
+          where: { userId },
+          data: { lastTestError: message.slice(0, 500) },
+        });
+      }
+      throw new BadRequestException(
+        `AI personalization test failed: ${message}`,
+      );
     }
   }
 
@@ -181,17 +237,10 @@ export class EmailAiService {
   }
 
   private async personalizeWithSettings(
-    settings: {
-      provider: EmailAiProvider;
-      apiKey: string | null;
-      openaiApiKey?: string | null;
-      mistralApiKey?: string | null;
-    },
+    settings: EmailAiSettingsLike,
     input: PersonalizeInput,
   ) {
-    const apiKey = this.secretVaultService.decrypt(
-      this.getEncryptedApiKey(settings),
-    );
+    const apiKey = this.resolveApiKey(settings);
     if (!apiKey) {
       throw new Error('AI API key is missing.');
     }
@@ -200,8 +249,16 @@ export class EmailAiService {
     const prompt = this.buildPrompt(input, research);
     const result =
       settings.provider === EmailAiProvider.MISTRAL
-        ? await this.callMistral(apiKey, prompt)
-        : await this.callOpenAi(apiKey, prompt);
+        ? await this.callMistral(
+            apiKey,
+            prompt,
+            this.normalizeModel(settings.mistralModel, this.mistralModel),
+          )
+        : await this.callOpenAi(
+            apiKey,
+            prompt,
+            this.normalizeModel(settings.openaiModel, this.openAiModel),
+          );
 
     return {
       subject: this.truncate((result.subject || input.subject).trim(), 200),
@@ -262,7 +319,10 @@ export class EmailAiService {
     }
   }
 
-  private buildPrompt(input: PersonalizeInput, research: Record<string, unknown>) {
+  private buildPrompt(
+    input: PersonalizeInput,
+    research: Record<string, unknown>,
+  ) {
     return [
       {
         role: 'system',
@@ -296,34 +356,39 @@ export class EmailAiService {
   private async callOpenAi(
     apiKey: string,
     messages: Array<{ role: string; content: string }>,
+    model = this.openAiModel,
   ) {
+    const body: Record<string, unknown> = {
+      model,
+      input: messages,
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'personalized_email',
+          strict: true,
+          schema: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['subject', 'body'],
+            properties: {
+              subject: { type: 'string' },
+              body: { type: 'string' },
+            },
+          },
+        },
+      },
+    };
+    if (model.startsWith('gpt-5')) {
+      body.reasoning = { effort: 'low' };
+    }
+
     const response = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
       headers: {
         authorization: `Bearer ${apiKey}`,
         'content-type': 'application/json',
       },
-      body: JSON.stringify({
-        model: this.openAiModel,
-        reasoning: { effort: 'low' },
-        input: messages,
-        text: {
-          format: {
-            type: 'json_schema',
-            name: 'personalized_email',
-            strict: true,
-            schema: {
-              type: 'object',
-              additionalProperties: false,
-              required: ['subject', 'body'],
-              properties: {
-                subject: { type: 'string' },
-                body: { type: 'string' },
-              },
-            },
-          },
-        },
-      }),
+      body: JSON.stringify(body),
     });
 
     const json = await this.parseProviderResponse(response);
@@ -338,6 +403,7 @@ export class EmailAiService {
   private async callMistral(
     apiKey: string,
     messages: Array<{ role: string; content: string }>,
+    model = this.mistralModel,
   ) {
     const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
       method: 'POST',
@@ -346,7 +412,7 @@ export class EmailAiService {
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: this.mistralModel,
+        model,
         messages,
         temperature: 0.4,
         response_format: { type: 'json_object' },
@@ -368,7 +434,9 @@ export class EmailAiService {
     try {
       json = text ? JSON.parse(text) : {};
     } catch {
-      throw new Error(`AI provider returned invalid JSON: ${text.slice(0, 200)}`);
+      throw new Error(
+        `AI provider returned invalid JSON: ${text.slice(0, 200)}`,
+      );
     }
 
     if (!response.ok) {
@@ -404,7 +472,9 @@ export class EmailAiService {
 
   private normalizeUrl(value: string) {
     try {
-      const withProtocol = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+      const withProtocol = /^https?:\/\//i.test(value)
+        ? value
+        : `https://${value}`;
       const url = new URL(withProtocol);
       if (!['http:', 'https:'].includes(url.protocol)) {
         return null;
@@ -430,26 +500,52 @@ export class EmailAiService {
       .trim();
   }
 
-  private async requireUsableSettings(userId: string) {
+  private async requireUsableSettings(
+    userId: string,
+  ): Promise<UsableEmailAiSettings> {
     const settings = await this.prisma.emailAiSettings.findUnique({
       where: { userId },
     });
 
-    if (!settings || !settings.isActive || !this.getEncryptedApiKey(settings)) {
+    if (!settings) {
+      const provider = this.defaultProviderFromEnv();
+      if (!this.getEnvApiKey(provider)) {
+        throw new NotFoundException(
+          'AI personalization is not configured for this login account.',
+        );
+      }
+
+      return {
+        provider,
+        apiKey: null,
+        openaiApiKey: null,
+        mistralApiKey: null,
+        openaiModel: this.openAiModel,
+        mistralModel: this.mistralModel,
+        isActive: true,
+        persisted: false,
+      };
+    }
+
+    if (!settings.isActive || !this.resolveApiKey(settings)) {
       throw new NotFoundException(
         'AI personalization is not configured for this login account.',
       );
     }
 
-    return settings;
+    return { ...settings, persisted: true };
   }
 
-  private getEncryptedApiKey(settings: {
-    provider: EmailAiProvider;
-    apiKey?: string | null;
-    openaiApiKey?: string | null;
-    mistralApiKey?: string | null;
-  }) {
+  private resolveApiKey(settings: EmailAiSettingsLike) {
+    const encryptedApiKey = this.getEncryptedApiKey(settings);
+    const savedApiKey = encryptedApiKey
+      ? this.secretVaultService.decrypt(encryptedApiKey)
+      : null;
+
+    return savedApiKey ?? this.getEnvApiKey(settings.provider);
+  }
+
+  private getEncryptedApiKey(settings: EmailAiSettingsLike) {
     const hasProviderSpecificKey = Boolean(
       settings.openaiApiKey || settings.mistralApiKey,
     );
@@ -470,32 +566,49 @@ export class EmailAiService {
   }
 
   private hasProviderKey(
-    settings: {
-      provider: EmailAiProvider;
-      apiKey?: string | null;
-      openaiApiKey?: string | null;
-      mistralApiKey?: string | null;
-    },
+    settings: EmailAiSettingsLike,
     provider: EmailAiProvider,
   ) {
+    if (this.getEnvApiKey(provider)) {
+      return true;
+    }
+
     const hasProviderSpecificKey = Boolean(
       settings.openaiApiKey || settings.mistralApiKey,
     );
     if (provider === EmailAiProvider.MISTRAL) {
       return Boolean(
         settings.mistralApiKey ||
-          (!hasProviderSpecificKey &&
-            settings.provider === EmailAiProvider.MISTRAL &&
-            settings.apiKey),
+        (!hasProviderSpecificKey &&
+          settings.provider === EmailAiProvider.MISTRAL &&
+          settings.apiKey),
       );
     }
 
     return Boolean(
       settings.openaiApiKey ||
-        (!hasProviderSpecificKey &&
-          settings.provider === EmailAiProvider.OPENAI &&
-          settings.apiKey),
+      (!hasProviderSpecificKey &&
+        settings.provider === EmailAiProvider.OPENAI &&
+        settings.apiKey),
     );
+  }
+
+  private getEnvApiKey(provider: EmailAiProvider) {
+    if (provider === EmailAiProvider.MISTRAL) {
+      return (
+        process.env.MISTRAL_EMAIL_API_KEY || process.env.MISTRAL_API_KEY || null
+      );
+    }
+
+    return (
+      process.env.OPENAI_EMAIL_API_KEY || process.env.OPENAI_API_KEY || null
+    );
+  }
+
+  private defaultProviderFromEnv() {
+    return this.getEnvApiKey(EmailAiProvider.OPENAI)
+      ? EmailAiProvider.OPENAI
+      : EmailAiProvider.MISTRAL;
   }
 
   private providers() {
@@ -503,6 +616,32 @@ export class EmailAiService {
       { value: EmailAiProvider.OPENAI, label: 'ChatGPT (OpenAI)' },
       { value: EmailAiProvider.MISTRAL, label: 'Mistral (Le Chat)' },
     ];
+  }
+
+  private models() {
+    return {
+      OPENAI: this.openAiModel,
+      MISTRAL: this.mistralModel,
+      options: {
+        OPENAI: [
+          'gpt-5.5',
+          'gpt-5.4',
+          'gpt-5-mini',
+          'gpt-4.1',
+          'gpt-4.1-mini',
+          'gpt-4o-mini',
+        ],
+        MISTRAL: [
+          'mistral-large-latest',
+          'mistral-medium-latest',
+          'mistral-small-latest',
+        ],
+      },
+    };
+  }
+
+  private normalizeModel(value: string | null | undefined, fallback: string) {
+    return value?.trim() || fallback;
   }
 
   private truncate(value: string, maxLength: number) {

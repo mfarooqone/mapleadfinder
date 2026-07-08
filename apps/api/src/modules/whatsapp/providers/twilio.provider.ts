@@ -21,7 +21,9 @@ export class TwilioProvider implements WhatsAppProviderAdapter {
 
   async sendTextMessage(payload: SendTextPayload): Promise<ProviderSendResult> {
     if (!payload.account.businessAccountId) {
-      throw new Error('Twilio account requires businessAccountId = Account SID.');
+      throw new Error(
+        'Twilio account requires businessAccountId = Account SID.',
+      );
     }
 
     const metadata =
@@ -68,9 +70,10 @@ export class TwilioProvider implements WhatsAppProviderAdapter {
   async sendTemplateMessage(
     payload: SendTemplatePayload,
   ): Promise<ProviderSendResult> {
-    const body = [payload.templateName, ...Object.values(payload.variables ?? {})].join(
-      ' | ',
-    );
+    const body = [
+      payload.templateName,
+      ...Object.values(payload.variables ?? {}),
+    ].join(' | ');
     return this.sendTextMessage({
       account: payload.account,
       credentials: payload.credentials,
@@ -99,16 +102,23 @@ export class TwilioProvider implements WhatsAppProviderAdapter {
         kind: 'message',
         phone: normalizePhoneNumber(body.From),
         content: body.Body,
-        providerMessageId: typeof body.MessageSid === 'string' ? body.MessageSid : undefined,
+        providerMessageId:
+          typeof body.MessageSid === 'string' ? body.MessageSid : undefined,
       });
     }
 
-    if (typeof body.MessageSid === 'string' && typeof body.MessageStatus === 'string') {
+    if (
+      typeof body.MessageSid === 'string' &&
+      typeof body.MessageStatus === 'string'
+    ) {
       events.push({
         kind: 'status',
         providerMessageId: body.MessageSid,
         status: this.mapStatus(body.MessageStatus),
-        phone: typeof body.To === 'string' ? normalizePhoneNumber(body.To) : undefined,
+        phone:
+          typeof body.To === 'string'
+            ? normalizePhoneNumber(body.To)
+            : undefined,
       });
     }
 

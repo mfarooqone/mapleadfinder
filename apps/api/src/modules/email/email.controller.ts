@@ -152,10 +152,6 @@ export class EmailController {
     @Param('id') id: string,
     @Body('isRead') isRead?: boolean,
   ) {
-    return this.emailMailboxService.markRead(
-      user.id,
-      id,
-      isRead ?? true,
-    );
+    return this.emailMailboxService.markRead(user.id, id, isRead ?? true);
   }
 }

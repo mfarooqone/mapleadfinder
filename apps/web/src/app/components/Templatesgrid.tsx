@@ -21,7 +21,7 @@ function getCategoryTone(category: string) {
     case "UTILITY":
       return "bg-sky-100 text-sky-700";
     case "AUTH":
-      return "bg-violet-100 text-violet-700";
+      return "bg-emerald-100 text-emerald-700";
     default:
       return "bg-slate-100 text-slate-600";
   }

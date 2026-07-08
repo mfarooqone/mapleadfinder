@@ -17,7 +17,7 @@ export default function DashboardOnboarding({ steps }: DashboardOnboardingProps)
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-violet-600" />
+            <Sparkles className="h-4 w-4 text-emerald-600" />
             <p className="section-label">Getting started</p>
           </div>
           <h2 className="mt-2 text-lg font-semibold text-neutral-900">
@@ -27,14 +27,14 @@ export default function DashboardOnboarding({ steps }: DashboardOnboardingProps)
             {completed} of {steps.length} steps complete
           </p>
         </div>
-        <span className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
+        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
           {progress}%
         </span>
       </div>
 
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-neutral-100">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-violet-500 to-emerald-500 transition-all duration-500"
+          className="h-full rounded-full bg-emerald-600 transition-all duration-500"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -47,7 +47,7 @@ export default function DashboardOnboarding({ steps }: DashboardOnboardingProps)
               className={`flex items-start gap-3 rounded-xl border p-3 transition-colors ${
                 step.done
                   ? "border-emerald-100 bg-emerald-50/50"
-                  : "border-neutral-200 hover:border-violet-200 hover:bg-violet-50/30"
+                  : "border-neutral-200 hover:border-emerald-200 hover:bg-emerald-50/30"
               }`}
             >
               {step.done ? (

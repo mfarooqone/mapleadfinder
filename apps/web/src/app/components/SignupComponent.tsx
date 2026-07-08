@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import { postJson } from "@/lib/backend";
 import AuthLayout from "./AuthLayout";
+import GoogleAuthButton from "./GoogleAuthButton";
 import {
   clearAuthSession,
   getAuthCookieToken,
@@ -24,6 +25,7 @@ type SignupErrors = {
 
 export default function SignupComponent() {
   const router = useRouter();
+  const googleEnabled = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -175,6 +177,21 @@ export default function SignupComponent() {
       title="Create your MapLeadFinder account"
       subtitle="Verify your email first. Temporary email addresses are blocked."
     >
+        {!verificationSent && googleEnabled ? (
+          <div className="mb-5 space-y-4">
+            <GoogleAuthButton
+              mode="signup"
+              onSuccess={() => router.replace("/dashboard/whatsapp/setup")}
+              onError={setSubmitError}
+            />
+            <div className="flex items-center gap-3 text-xs text-neutral-400">
+              <span className="h-px flex-1 bg-neutral-200" />
+              <span>or</span>
+              <span className="h-px flex-1 bg-neutral-200" />
+            </div>
+          </div>
+        ) : null}
+
         {!verificationSent ? (
         <form onSubmit={handleRequestCode} className="space-y-4" noValidate>
           <div>

@@ -24,13 +24,15 @@ export function resolveOutreachConfig(
     'OUTREACH_REQUIRE_INCOMING',
   );
   const requireIncoming =
-    requireIncomingEnv !== undefined
-      ? requireIncomingEnv !== 'false'
-      : false;
+    requireIncomingEnv !== undefined ? requireIncomingEnv !== 'false' : false;
 
   return {
     mode,
-    maxColdPerDay: readPositiveInt(configService, 'OUTREACH_MAX_COLD_PER_DAY', 500),
+    maxColdPerDay: readPositiveInt(
+      configService,
+      'OUTREACH_MAX_COLD_PER_DAY',
+      500,
+    ),
     minDelaySeconds: readPositiveInt(
       configService,
       'OUTREACH_MIN_DELAY_SECONDS',
@@ -50,7 +52,11 @@ export function resolveOutreachConfig(
       'OUTREACH_PACKAGE_PAUSE_SECONDS',
       3600,
     ),
-    recooldownDays: readPositiveInt(configService, 'OUTREACH_RECOOLDOWN_DAYS', 7),
+    recooldownDays: readPositiveInt(
+      configService,
+      'OUTREACH_RECOOLDOWN_DAYS',
+      7,
+    ),
   };
 }
 

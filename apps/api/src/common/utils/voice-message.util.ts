@@ -101,6 +101,8 @@ export function readVoiceFromMessageMetadata(
         ? voiceRecord.mimetype
         : undefined,
     convert:
-      typeof voiceRecord.convert === 'boolean' ? voiceRecord.convert : undefined,
+      typeof voiceRecord.convert === 'boolean'
+        ? voiceRecord.convert
+        : undefined,
   };
 }

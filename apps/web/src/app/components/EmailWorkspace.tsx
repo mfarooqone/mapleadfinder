@@ -137,6 +137,8 @@ export default function EmailWorkspace() {
   const [aiForm, setAiForm] = useState<EmailAiSettingsPayload>({
     provider: "OPENAI",
     apiKey: "",
+    openaiModel: "gpt-5.5",
+    mistralModel: "mistral-large-latest",
     isActive: true,
   });
   const [aiPersonalizationEnabled, setAiPersonalizationEnabled] = useState(true);
@@ -181,6 +183,10 @@ export default function EmailWorkspace() {
     aiSettings?.providerKeys?.[aiForm.provider] ??
       (aiSettings?.provider === aiForm.provider && aiSettings?.hasApiKey),
   );
+  const aiModelOptions = aiSettings?.models?.options ?? {
+    OPENAI: ["gpt-5.5", "gpt-5.4", "gpt-5-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4o-mini"],
+    MISTRAL: ["mistral-large-latest", "mistral-medium-latest", "mistral-small-latest"],
+  };
   const previewContact =
     sortedContacts.find((contact) => selectedContactIds.includes(contact.id)) ??
     emailContacts[0] ??
@@ -226,6 +232,11 @@ export default function EmailWorkspace() {
       setAiForm({
         provider: nextAiSettings.provider,
         apiKey: "",
+        openaiModel: nextAiSettings.openaiModel ?? nextAiSettings.models?.OPENAI ?? "gpt-5.5",
+        mistralModel:
+          nextAiSettings.mistralModel ??
+          nextAiSettings.models?.MISTRAL ??
+          "mistral-large-latest",
         isActive: nextAiSettings.isActive ?? true,
       });
     }
@@ -485,6 +496,8 @@ export default function EmailWorkspace() {
       >("/email/ai-settings", {
         provider: aiForm.provider,
         apiKey: aiForm.apiKey?.trim() || undefined,
+        openaiModel: aiForm.openaiModel,
+        mistralModel: aiForm.mistralModel,
         isActive: aiForm.isActive ?? true,
       });
       setAiSettings(response.settings);
@@ -529,8 +542,8 @@ export default function EmailWorkspace() {
     <AppShell onRefresh={() => void refreshAll()} refreshing={refreshing}>
       <div className="flex flex-col gap-4 pb-20 xl:pb-6">
         <PageHeader
-          title="Send emails"
-          description="Queue SMTP email outreach to contacts with email addresses."
+          title="Email campaigns"
+          description="Queue SMTP email campaigns to contacts with valid email addresses."
           actions={
             <>
               <PageLink href="/dashboard/email/setup">
@@ -745,7 +758,7 @@ export default function EmailWorkspace() {
                 <Sparkles className="h-5 w-5 shrink-0 text-emerald-700" />
               </div>
 
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <div className="mt-3 grid gap-2 lg:grid-cols-3">
                 <div>
                   <label className="label">AI provider</label>
                   <select
@@ -765,6 +778,30 @@ export default function EmailWorkspace() {
                     ]).map((provider) => (
                       <option key={provider.value} value={provider.value}>
                         {provider.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Model</label>
+                  <select
+                    value={
+                      aiForm.provider === "MISTRAL"
+                        ? (aiForm.mistralModel ?? "mistral-large-latest")
+                        : (aiForm.openaiModel ?? "gpt-5.5")
+                    }
+                    onChange={(event) =>
+                      setAiForm(
+                        aiForm.provider === "MISTRAL"
+                          ? { ...aiForm, mistralModel: event.target.value }
+                          : { ...aiForm, openaiModel: event.target.value },
+                      )
+                    }
+                    className="input bg-white"
+                  >
+                    {aiModelOptions[aiForm.provider].map((model) => (
+                      <option key={model} value={model}>
+                        {model}
                       </option>
                     ))}
                   </select>
@@ -794,7 +831,7 @@ export default function EmailWorkspace() {
                   }
                   className="mt-1"
                 />
-                Save selected provider and its API key.
+                Save selected provider, model, and API key.
               </label>
 
               <label className="mt-2 flex items-start gap-2 text-sm text-emerald-950">
@@ -832,6 +869,8 @@ export default function EmailWorkspace() {
                 <p className="mt-2 text-xs text-emerald-800">
                   Active provider:{" "}
                   {aiSettings.provider === "MISTRAL" ? "Mistral (Le Chat)" : "ChatGPT (OpenAI)"}
+                  {" · "}
+                  Model {aiSettings.provider === "MISTRAL" ? aiSettings.mistralModel : aiSettings.openaiModel}
                   {" · "}
                   OpenAI key {aiSettings.providerKeys?.OPENAI ? "saved" : "missing"}
                   {" · "}

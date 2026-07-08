@@ -5,7 +5,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JobStatus, JobType, Lead, MessageStatus, Prisma, ProviderType } from '@prisma/client';
+import {
+  JobStatus,
+  JobType,
+  Lead,
+  MessageStatus,
+  Prisma,
+  ProviderType,
+} from '@prisma/client';
 import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -213,7 +220,9 @@ export class WhatsappService {
       ? await this.getWahaSession(resolvedSessionName, config).catch(() => null)
       : null;
     const me = envReady
-      ? await this.getWahaSessionMe(resolvedSessionName, config).catch(() => null)
+      ? await this.getWahaSessionMe(resolvedSessionName, config).catch(
+          () => null,
+        )
       : null;
 
     return {
@@ -401,18 +410,25 @@ export class WhatsappService {
       );
     }
 
-    const existingSession = await this.getWahaSession(sessionName, config).catch(
-      () => null,
-    );
+    const existingSession = await this.getWahaSession(
+      sessionName,
+      config,
+    ).catch(() => null);
     const session = existingSession
-      ? await this.ensureWahaSessionStarted(sessionName, existingSession, config)
+      ? await this.ensureWahaSessionStarted(
+          sessionName,
+          existingSession,
+          config,
+        )
       : await this.upsertWahaSession({
           sessionName,
           config,
           webhookBaseUrl: dto.webhookBaseUrl,
         });
 
-    const me = await this.getWahaSessionMe(sessionName, config).catch(() => null);
+    const me = await this.getWahaSessionMe(sessionName, config).catch(
+      () => null,
+    );
     const linkedPhoneNumber =
       dto.phoneNumber?.trim() || this.extractPhoneNumberFromWahaMe(me);
 
@@ -434,9 +450,10 @@ export class WhatsappService {
       provider: ProviderType.WAHA,
       apiKey: config.apiKey,
       businessAccountId: sessionName,
-      webhookUrl: dto.webhookBaseUrl
-        ? `${dto.webhookBaseUrl.replace(/\/$/, '')}/webhooks/whatsapp/waha`
-        : '/webhooks/whatsapp/waha',
+      webhookUrl:
+        this.buildWahaWebhookUrl(
+          this.resolveWebhookBaseUrl(dto.webhookBaseUrl),
+        ) ?? '/webhooks/whatsapp/waha',
       metadata: {
         baseUrl: config.baseUrl,
         sessionName,
@@ -953,8 +970,7 @@ export class WhatsappService {
         sessionName: resolvedSessionName,
         qr: null,
         alreadyLinked: true,
-        hint:
-          'This session is already linked. To scan a different number, click Change number on the setup page first (logs out WAHA and clears the saved account).',
+        hint: 'This session is already linked. To scan a different number, click Change number on the setup page first (logs out WAHA and clears the saved account).',
       };
     }
 
@@ -1026,7 +1042,9 @@ export class WhatsappService {
     );
 
     if (!eligibility.allowed) {
-      throw new BadRequestException(this.describeOutreachSkip(eligibility.reason));
+      throw new BadRequestException(
+        this.describeOutreachSkip(eligibility.reason),
+      );
     }
 
     const isColdSend = !hasIncoming && isFirstOutgoing;
@@ -1107,8 +1125,7 @@ export class WhatsappService {
       provider: ProviderType.BAILEYS,
       requiresWahaPlus: false,
       baileysTransport: 'WhatsApp Web socket',
-      note:
-        'Voice uses free Baileys. Link a Baileys session by QR, then send OGG/Opus audio as a WhatsApp voice note.',
+      note: 'Voice uses free Baileys. Link a Baileys session by QR, then send OGG/Opus audio as a WhatsApp voice note.',
       documentation: 'https://github.com/WhiskeySockets/Baileys',
       antiBlocking:
         'https://waha.devlike.pro/docs/overview/%EF%B8%8F-how-to-avoid-blocking/',
@@ -1338,7 +1355,10 @@ export class WhatsappService {
     }
   }
 
-  private async generateWindowsSpeechAudio(text: string, originalError: unknown) {
+  private async generateWindowsSpeechAudio(
+    text: string,
+    originalError: unknown,
+  ) {
     const workdir = await mkdtemp(join(tmpdir(), 'whatsapp-agent-tts-'));
     const inputPath = join(workdir, 'script.txt');
     const outputPath = join(workdir, 'voice.wav');
@@ -1360,7 +1380,10 @@ export class WhatsappService {
         { timeout: 60_000, windowsHide: true },
       );
 
-      return this.convertAudioToWhatsAppVoice(await readFile(outputPath), 'wav');
+      return this.convertAudioToWhatsAppVoice(
+        await readFile(outputPath),
+        'wav',
+      );
     } catch (fallbackError) {
       throw new BadRequestException(
         `Text-to-speech generation failed. Edge TTS said: ${
@@ -1374,7 +1397,9 @@ export class WhatsappService {
         }`,
       );
     } finally {
-      await rm(workdir, { recursive: true, force: true }).catch(() => undefined);
+      await rm(workdir, { recursive: true, force: true }).catch(
+        () => undefined,
+      );
     }
   }
 
@@ -1423,7 +1448,9 @@ export class WhatsappService {
         }`,
       );
     } finally {
-      await rm(workdir, { recursive: true, force: true }).catch(() => undefined);
+      await rm(workdir, { recursive: true, force: true }).catch(
+        () => undefined,
+      );
     }
   }
 
@@ -1667,8 +1694,7 @@ export class WhatsappService {
       messageType === 'voice'
         ? []
         : [dto.messageTemplate ?? '', ...(dto.messageVariants ?? [])].filter(
-            (template): template is string =>
-              Boolean(template?.trim().length),
+            (template): template is string => Boolean(template?.trim().length),
           );
     const voiceContentLabel = bulkVoice
       ? buildVoiceContentLabel(bulkVoice)
@@ -1824,7 +1850,6 @@ export class WhatsappService {
         seoPoint: messageType === 'text' ? seoResearch.point : '',
         messagePreview: this.truncateText(renderedMessage, 180),
       });
-
     }
 
     const skippedNotes: string[] = [];
@@ -1834,16 +1859,22 @@ export class WhatsappService {
       );
     }
     if (skippedNoIncoming.length > 0) {
-      skippedNotes.push(`${skippedNoIncoming.length} without incoming message(s)`);
+      skippedNotes.push(
+        `${skippedNoIncoming.length} without incoming message(s)`,
+      );
     }
     if (skippedDailyCap.length > 0) {
       skippedNotes.push(`${skippedDailyCap.length} over daily cap`);
     }
     if (skippedMessageTooLong.length > 0) {
-      skippedNotes.push(`${skippedMessageTooLong.length} first-message rule violation(s)`);
+      skippedNotes.push(
+        `${skippedMessageTooLong.length} first-message rule violation(s)`,
+      );
     }
     if (skippedRecentlyContacted.length > 0) {
-      skippedNotes.push(`${skippedRecentlyContacted.length} recently contacted`);
+      skippedNotes.push(
+        `${skippedRecentlyContacted.length} recently contacted`,
+      );
     }
     if (skippedBlocked.length > 0) {
       skippedNotes.push(`${skippedBlocked.length} blocked contact(s)`);
@@ -1937,7 +1968,9 @@ export class WhatsappService {
     const campaignJobs = jobsWithCampaign
       .filter(({ payload }) => payload.campaignId === resolvedCampaignId)
       .map(({ job, payload }) => ({ job, payload }))
-      .sort((left, right) => left.job.runAt.getTime() - right.job.runAt.getTime());
+      .sort(
+        (left, right) => left.job.runAt.getTime() - right.job.runAt.getTime(),
+      );
     const messageIds = campaignJobs
       .map(({ payload }) => payload.messageId)
       .filter((id): id is string => typeof id === 'string');
@@ -1954,7 +1987,9 @@ export class WhatsappService {
         updatedAt: true,
       },
     });
-    const messageById = new Map(messages.map((message) => [message.id, message]));
+    const messageById = new Map(
+      messages.map((message) => [message.id, message]),
+    );
     const contacts = campaignJobs.map(({ job, payload }) => {
       const messageId =
         typeof payload.messageId === 'string' ? payload.messageId : null;
@@ -2343,11 +2378,11 @@ export class WhatsappService {
           ? 'WAHA is the free self-hosted path using a WhatsApp Web-style session.'
           : account.provider === ProviderType.BAILEYS
             ? 'Baileys is the free WhatsApp Web socket path and supports voice notes without WAHA Plus.'
-          : account.provider === ProviderType.TWILIO
-            ? 'Twilio is the easiest path for sandbox testing and then upgrading to your own sender.'
-            : account.provider === ProviderType.META_CLOUD
-              ? 'Meta Cloud API is the direct official low-cost path.'
-              : 'Supported via adapter. Confirm provider template policy before campaign launch.',
+            : account.provider === ProviderType.TWILIO
+              ? 'Twilio is the easiest path for sandbox testing and then upgrading to your own sender.'
+              : account.provider === ProviderType.META_CLOUD
+                ? 'Meta Cloud API is the direct official low-cost path.'
+                : 'Supported via adapter. Confirm provider template policy before campaign launch.',
       conversationId: conversation.id,
       messageId: queuedMessage.id,
       jobId: job.id,
@@ -2398,9 +2433,12 @@ export class WhatsappService {
         this.configService
           .get<string>('WAHA_BASE_URL')
           ?.trim()
-          ?.replace(/\/$/, '') || '',
+          ?.replace(/\/$/, '') ||
+        '',
       apiKey:
-        userApiKey || this.configService.get<string>('WAHA_API_KEY')?.trim() || '',
+        userApiKey ||
+        this.configService.get<string>('WAHA_API_KEY')?.trim() ||
+        '',
       sessionName:
         userSessionName ||
         this.configService.get<string>('WAHA_SESSION_NAME')?.trim() ||
@@ -2433,7 +2471,8 @@ export class WhatsappService {
     requestedSessionName: string | undefined,
     fallbackSessionName: string,
   ) {
-    const base = requestedSessionName?.trim() || fallbackSessionName || 'default';
+    const base =
+      requestedSessionName?.trim() || fallbackSessionName || 'default';
     const safeBase = base.replace(/[^a-zA-Z0-9_-]/g, '_') || 'default';
     const safeUserId = userId?.replace(/[^a-zA-Z0-9_-]/g, '_');
 
@@ -2629,11 +2668,12 @@ export class WhatsappService {
     config: WahaConfig;
     webhookBaseUrl?: string;
   }) {
-    const webhookUrl = input.webhookBaseUrl
-      ? `${input.webhookBaseUrl.replace(/\/$/, '')}/webhooks/whatsapp/waha`
-      : input.config.userId
-        ? `/webhooks/whatsapp/waha?userId=${encodeURIComponent(input.config.userId)}`
-        : null;
+    const webhookBaseUrl = this.resolveWebhookBaseUrl(input.webhookBaseUrl);
+    const webhookUrl = this.buildWahaWebhookUrl(
+      webhookBaseUrl,
+      input.config.userId,
+      input.config.webhookSecret,
+    );
     const payload = {
       name: input.sessionName,
       config: {
@@ -2689,7 +2729,43 @@ export class WhatsappService {
       );
     }
 
-    return this.ensureWahaSessionStarted(input.sessionName, session, input.config);
+    return this.ensureWahaSessionStarted(
+      input.sessionName,
+      session,
+      input.config,
+    );
+  }
+
+  private resolveWebhookBaseUrl(webhookBaseUrl?: string) {
+    return (
+      webhookBaseUrl ||
+      this.configService.get<string>('PUBLIC_API_URL') ||
+      this.configService.get<string>('APP_PUBLIC_API_URL') ||
+      ''
+    )
+      .trim()
+      .replace(/\/$/, '');
+  }
+
+  private buildWahaWebhookUrl(
+    webhookBaseUrl: string,
+    userId?: string,
+    webhookSecret?: string,
+  ) {
+    if (!webhookBaseUrl) {
+      return null;
+    }
+
+    const params = new URLSearchParams();
+    if (userId) {
+      params.set('userId', userId);
+    }
+    if (webhookSecret) {
+      params.set('secret', webhookSecret);
+    }
+
+    const query = params.toString();
+    return `${webhookBaseUrl}/webhooks/whatsapp/waha${query ? `?${query}` : ''}`;
   }
 
   private async getWahaSession(sessionName: string, config?: WahaConfig) {
@@ -2716,7 +2792,8 @@ export class WhatsappService {
     config?: WahaConfig,
   ) {
     const currentSession =
-      session ?? (await this.getWahaSession(sessionName, config).catch(() => null));
+      session ??
+      (await this.getWahaSession(sessionName, config).catch(() => null));
     const status = this.getWahaSessionStatus(currentSession);
 
     if (status === 'WORKING' || status === 'SCAN_QR_CODE') {
@@ -2725,11 +2802,13 @@ export class WhatsappService {
 
     if (status === 'STARTING') {
       return (
-        (await this.waitForWahaSessionStatuses(sessionName, [
-          'SCAN_QR_CODE',
-          'WORKING',
-          'FAILED',
-        ], undefined, undefined, config)) ?? currentSession
+        (await this.waitForWahaSessionStatuses(
+          sessionName,
+          ['SCAN_QR_CODE', 'WORKING', 'FAILED'],
+          undefined,
+          undefined,
+          config,
+        )) ?? currentSession
       );
     }
 
@@ -2744,11 +2823,13 @@ export class WhatsappService {
     );
 
     return (
-      (await this.waitForWahaSessionStatuses(sessionName, [
-        'SCAN_QR_CODE',
-        'WORKING',
-        'FAILED',
-      ], undefined, undefined, config)) ?? currentSession
+      (await this.waitForWahaSessionStatuses(
+        sessionName,
+        ['SCAN_QR_CODE', 'WORKING', 'FAILED'],
+        undefined,
+        undefined,
+        config,
+      )) ?? currentSession
     );
   }
 
@@ -2762,7 +2843,9 @@ export class WhatsappService {
     let latestSession: unknown = null;
 
     for (let attempt = 0; attempt < attempts; attempt += 1) {
-      latestSession = await this.getWahaSession(sessionName, config).catch(() => null);
+      latestSession = await this.getWahaSession(sessionName, config).catch(
+        () => null,
+      );
       const status = this.getWahaSessionStatus(latestSession);
 
       if (status && expectedStatuses.includes(status)) {
@@ -3029,7 +3112,9 @@ export class WhatsappService {
       return custom;
     }
 
-    return variants[this.stableIndex(`${lead.id}:${lead.phone}:${source}`, variants.length)];
+    return variants[
+      this.stableIndex(`${lead.id}:${lead.phone}:${source}`, variants.length)
+    ];
   }
 
   private composeNoWebsiteOutreach(
@@ -3088,10 +3173,13 @@ export class WhatsappService {
       'I can keep it simple and send the top 3 actions only.',
     ];
 
-    const opening = openings[this.stableIndex(`${seed}:opening`, openings.length)];
-    const context = contexts[this.stableIndex(`${seed}:context`, contexts.length)];
+    const opening =
+      openings[this.stableIndex(`${seed}:opening`, openings.length)];
+    const context =
+      contexts[this.stableIndex(`${seed}:context`, contexts.length)];
     const point = points[this.stableIndex(`${seed}:point`, points.length)];
-    const closing = closings[this.stableIndex(`${seed}:closing`, closings.length)];
+    const closing =
+      closings[this.stableIndex(`${seed}:closing`, closings.length)];
 
     return [opening, signature, context, point, '', closing].join('\n');
   }

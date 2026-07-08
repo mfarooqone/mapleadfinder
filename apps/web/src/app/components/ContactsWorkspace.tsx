@@ -529,87 +529,43 @@ export default function ContactsWorkspace() {
       >
         <div className="cw-font flex flex-col gap-5">
 
-          {/* ══════════════════════════════
-              Dark hero header
-          ══════════════════════════════ */}
-          <header
-            className="cw-glow-border cw-fu-1 relative isolate overflow-hidden rounded-[2rem] p-6 md:p-8"
-            style={{ background:"linear-gradient(150deg,#060f0a 0%,#08111f 55%,#060f0a 100%)" }}
-          >
-            {/* Atmosphere */}
-            <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-[2rem]">
-              <div className="cw-orb-a absolute -left-28 -top-28 h-[340px] w-[340px] rounded-full"
-                style={{ background:"radial-gradient(circle,rgba(16,185,129,0.38) 0%,transparent 70%)", filter:"blur(64px)", opacity:0.32 }} />
-              <div className="cw-orb-b absolute -bottom-20 -right-20 h-[260px] w-[260px] rounded-full"
-                style={{ background:"radial-gradient(circle,rgba(6,182,212,0.32) 0%,transparent 70%)", filter:"blur(72px)", opacity:0.26 }} />
-              <div className="absolute inset-0 opacity-[0.05]"
-                style={{ backgroundImage:"radial-gradient(circle,rgba(52,211,153,1) 1px,transparent 1px)", backgroundSize:"26px 26px" }} />
-              <div className="absolute left-0 right-0 h-px"
-                style={{ top:"65%", background:"linear-gradient(90deg,transparent,rgba(52,211,153,0.25),rgba(6,182,212,0.25),transparent)" }} />
-            </div>
-
-            <div className="relative flex flex-wrap items-center justify-between gap-5">
-              {/* Left */}
+          <header className="card card-pad border-l-4 border-l-emerald-500">
+            <div className="flex flex-wrap items-center justify-between gap-5">
               <div>
                 <Link
                   href="/dashboard/whatsapp/setup"
-                  className="inline-flex items-center gap-1.5 text-sm font-semibold transition-colors"
-                  style={{ color:"rgba(52,211,153,0.85)" }}
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 transition-colors hover:text-emerald-800"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Back to WAHA setup
                 </Link>
 
-                <div className="mt-4 mb-1 inline-flex items-center gap-2.5 rounded-full px-3.5 py-1.5"
-                  style={{ background:"rgba(16,185,129,0.10)", border:"1px solid rgba(52,211,153,0.25)", backdropFilter:"blur(12px)" }}>
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full rounded-full opacity-75"
-                      style={{ animation:"cw-ping 1.8s ease-out infinite", background:"#10b981" }} />
-                    <span className="relative inline-flex h-2 w-2 rounded-full"
-                      style={{ background:"#34d399", boxShadow:"0 0 8px rgba(52,211,153,0.9)" }} />
-                  </span>
-                  <span className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color:"#6ee7b7" }}>
-                    Contacts Route
-                  </span>
-                </div>
-
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color:"rgba(52,211,153,0.7)" }}>
+                <p className="mt-5 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
                   CRM
                 </p>
-                <h1
-                  className="mt-1.5 font-black leading-[1.08] tracking-[-0.04em] text-white"
-                  style={{ fontSize:"clamp(1.8rem,3.5vw,2.6rem)" }}
-                >
-                  Contacts{" "}
-                  <span className="cw-gradient-text">Workspace</span>
-                </h1>
-                <p className="mt-2.5 max-w-xl text-sm leading-6" style={{ color:"rgba(148,163,184,0.8)" }}>
-                  Upload your contact list with names and phone numbers, save them in the backend, then use the dropdown on the WAHA setup page to pick who receives the message.
+                <h1 className="page-title mt-1">Contacts Workspace</h1>
+                <p className="page-subtitle mt-2 max-w-2xl">
+                  Upload contact lists, save individual customers, and keep the WAHA dropdown ready for outreach.
                 </p>
               </div>
 
-              {/* Right — stat + refresh */}
               <div className="flex items-center gap-3">
-                {/* Contact count badge */}
-                <div
-                  className="rounded-2xl px-5 py-3.5 text-center"
-                  style={{ background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.12)", backdropFilter:"blur(16px)" }}
-                >
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color:"rgba(100,116,139,0.8)" }}>
+                <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-5 py-3 text-center">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-700">
                     Saved Contacts
                   </p>
-                  <p className="mt-1 text-2xl font-black tracking-[-0.04em]" style={{ color:sortedLeads.length > 0 ? "#34d399" : "rgba(226,232,240,0.7)" }}>
-                    {loading ? "—" : sortedLeads.length}
+                  <p className="mt-1 text-2xl font-black tracking-[-0.04em] text-emerald-800">
+                    {loading ? "-" : sortedLeads.length}
                   </p>
                 </div>
 
                 <button
                   onClick={() => void handleRefresh()}
                   disabled={refreshing}
-                  className="inline-flex items-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50"
-                  style={{ background:"rgba(255,255,255,0.055)", border:"1px solid rgba(255,255,255,0.12)", color:"rgba(226,232,240,0.88)" }}
+                  className="btn btn-secondary"
+                  title="Refresh contacts"
                 >
-                  <RefreshCw className={`h-4 w-4 ${refreshing ? "cw-spinning" : ""}`} style={{ color:"#34d399" }} />
+                  <RefreshCw className={`h-4 w-4 ${refreshing ? "cw-spinning" : ""}`} />
                 </button>
               </div>
             </div>

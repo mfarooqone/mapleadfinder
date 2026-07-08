@@ -1,4 +1,10 @@
-import { ArrayMinSize, ArrayUnique, IsArray, IsBoolean, IsString } from 'class-validator';
+import {
+  ArrayMinSize,
+  ArrayUnique,
+  IsArray,
+  IsBoolean,
+  IsString,
+} from 'class-validator';
 
 export class BulkUpdateOptInDto {
   @IsArray()

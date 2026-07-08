@@ -43,6 +43,11 @@ export type ScrapeProgressCallback = (
 
 export type ScrapeStopCallback = () => Promise<boolean>;
 
+type ListingTarget = {
+  url: string;
+  name?: string | null;
+};
+
 const EMAIL_PAGE_KEYWORDS = [
   'contact',
   'about',
@@ -169,13 +174,8 @@ export class ScraperService {
     const recordLimit = Math.min(Math.max(Math.floor(maxRecords), 1), 500);
     const scrapeBatch =
       batchId ??
-      (
-        await this.leadsService.createScrapeBatch(
-          userId,
-          keyword,
-          recordLimit,
-        )
-      ).id;
+      (await this.leadsService.createScrapeBatch(userId, keyword, recordLimit))
+        .id;
     const browser = await chromium.launch({
       headless: this.getHeadlessMode(),
       slowMo: this.getSlowMo(),
@@ -247,11 +247,17 @@ export class ScraperService {
         discoveredLeads: 0,
         processedListings: 0,
       });
-      await this.scrollFeedToEnd(page, feed, recordLimit);
-
+      const listingTargets = await this.collectListingTargets(
+        page,
+        feed,
+        recordLimit,
+      );
       const listings = page.locator('div[role="article"]');
       const listingCount = await listings.count();
-      const listingsToProcess = Math.min(listingCount, recordLimit);
+      const listingsToProcess = Math.min(
+        listingTargets.length || listingCount,
+        recordLimit,
+      );
       await onProgress?.({
         percent: 35,
         phase: 'Processing listings',
@@ -283,12 +289,21 @@ export class ScraperService {
           };
         }
 
-        const listing = listings.nth(index);
-
         try {
-          const listingName = await this.extractListingName(listing);
+          const target = listingTargets[index];
+          let listingName = target?.name;
 
-          await this.openListingDetails(page, listing);
+          if (target?.url) {
+            await page.goto(target.url, {
+              waitUntil: 'domcontentloaded',
+              timeout: 60000,
+            });
+            await this.waitForVisible(page.locator('h1').first(), 15000);
+          } else {
+            const listing = listings.nth(index);
+            listingName = await this.extractListingName(listing);
+            await this.openListingDetails(page, listing);
+          }
 
           const lead = await this.extractLead(page, listingName);
 
@@ -309,19 +324,17 @@ export class ScraperService {
         }
 
         if (listingsToProcess > 0) {
-          await onProgress?.(
-            {
-              percent: Math.min(
-                90,
-                35 + Math.round(((index + 1) / listingsToProcess) * 55),
-              ),
-              phase: 'Processing listings',
-              totalListings: listingsToProcess,
-              processedListings: index + 1,
-              discoveredLeads: leads.length,
-              savedLeads: savedCount,
-            },
-          );
+          await onProgress?.({
+            percent: Math.min(
+              90,
+              35 + Math.round(((index + 1) / listingsToProcess) * 55),
+            ),
+            phase: 'Processing listings',
+            totalListings: listingsToProcess,
+            processedListings: index + 1,
+            discoveredLeads: leads.length,
+            savedLeads: savedCount,
+          });
         }
       }
 
@@ -349,26 +362,98 @@ export class ScraperService {
     }
   }
 
-  private async scrollFeedToEnd(page: Page, feed: Locator, maxRecords: number) {
+  private async collectListingTargets(
+    page: Page,
+    feed: Locator,
+    maxRecords: number,
+  ) {
+    const targets = new Map<string, ListingTarget>();
     let previousCount = 0;
     let stableRounds = 0;
+    const maxScrollAttempts = Math.max(12, Math.ceil(maxRecords / 12));
 
-    while (stableRounds < 3) {
-      const loadedCount = await page.locator('div[role="article"]').count();
-      if (loadedCount >= maxRecords) {
-        return;
+    for (
+      let attempt = 0;
+      attempt < maxScrollAttempts && stableRounds < 8;
+      attempt += 1
+    ) {
+      await this.rememberVisibleListingTargets(page, targets, maxRecords);
+      if (targets.size >= maxRecords) {
+        break;
       }
 
-      await feed.evaluate((el) => el.scrollBy(0, Math.max(3000, el.clientHeight * 3)));
+      await feed.evaluate((el) =>
+        el.scrollBy(0, Math.max(3000, el.clientHeight * 3)),
+      );
       await page.waitForTimeout(2000);
+      await this.rememberVisibleListingTargets(page, targets, maxRecords);
 
       const currentCount = await page.locator('div[role="article"]').count();
+      const progressCount = Math.max(currentCount, targets.size);
 
-      if (currentCount === previousCount) {
+      if (progressCount === previousCount) {
         stableRounds++;
       } else {
         stableRounds = 0;
-        previousCount = currentCount;
+        previousCount = progressCount;
+      }
+    }
+
+    return [...targets.values()].slice(0, maxRecords);
+  }
+
+  private async rememberVisibleListingTargets(
+    page: Page,
+    targets: Map<string, ListingTarget>,
+    maxRecords: number,
+  ) {
+    const visibleTargets = await page
+      .locator('div[role="article"]')
+      .evaluateAll((articles) =>
+        articles
+          .map((article) => {
+            const anchor = article.querySelector<HTMLAnchorElement>(
+              'a[href*="/maps/place/"], a[href*="google.com/maps/place/"]',
+            );
+            const href = anchor?.href;
+            if (!href) return null;
+
+            const ariaLabel =
+              anchor.getAttribute('aria-label') ||
+              article.getAttribute('aria-label') ||
+              '';
+            const text =
+              ariaLabel ||
+              article.querySelector('[aria-label]')?.getAttribute('aria-label') ||
+              article.textContent ||
+              '';
+
+            return {
+              url: href,
+              name: text.split('\n')[0]?.trim() || null,
+            };
+          })
+          .filter(
+            (target): target is { url: string; name: string | null } =>
+              Boolean(target?.url),
+          ),
+      )
+      .catch(() => [] as ListingTarget[]);
+
+    for (const target of visibleTargets) {
+      if (targets.size >= maxRecords) {
+        return;
+      }
+
+      try {
+        const normalizedUrl = new URL(target.url, page.url());
+        normalizedUrl.search = '';
+        targets.set(normalizedUrl.toString(), {
+          url: normalizedUrl.toString(),
+          name: target.name,
+        });
+      } catch {
+        // Ignore malformed listing links and continue collecting.
       }
     }
   }
@@ -481,7 +566,9 @@ export class ScraperService {
         ),
         ['Website:'],
       );
-    const normalizedWebsite = this.cleanWebsiteUrl(this.normalizeNullable(website));
+    const normalizedWebsite = this.cleanWebsiteUrl(
+      this.normalizeNullable(website),
+    );
     const email = await this.extractEmailFromWebsite(page, normalizedWebsite);
 
     return {
@@ -532,7 +619,9 @@ export class ScraperService {
     return {
       ...existing,
       ...Object.fromEntries(
-        Object.entries(incoming).filter(([, value]) => value !== null && value !== undefined && value !== ''),
+        Object.entries(incoming).filter(
+          ([, value]) => value !== null && value !== undefined && value !== '',
+        ),
       ),
     };
   }
@@ -626,7 +715,9 @@ export class ScraperService {
       .replace(/\s*(?:\[dot\]|\(dot\)|\sdot\s)\s*/gi, '.')
       .replace(/&#64;|&commat;/gi, '@')
       .replace(/&#46;|&period;/gi, '.');
-    const emails = normalizedValue.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi);
+    const emails = normalizedValue.match(
+      /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,
+    );
 
     if (!emails) {
       return [];
@@ -635,37 +726,40 @@ export class ScraperService {
     return [
       ...new Set(
         emails
-      .map((candidate) =>
-        candidate
-          .replace(/^mailto:/i, '')
-          .split('?')[0]
-          .trim()
-          .toLowerCase(),
-      )
-      .filter((candidate) => {
-        const lower = candidate.toLowerCase();
+          .map((candidate) =>
+            candidate
+              .replace(/^mailto:/i, '')
+              .split('?')[0]
+              .trim()
+              .toLowerCase(),
+          )
+          .filter((candidate) => {
+            const lower = candidate.toLowerCase();
 
-        return (
-          this.isUsableEmail(lower) &&
-          !lower.endsWith('.png') &&
-          !lower.endsWith('.jpg') &&
-          !lower.endsWith('.jpeg') &&
-          !lower.endsWith('.gif') &&
-          !lower.endsWith('.webp') &&
-          !lower.includes('@2x.')
-        );
-      }),
+            return (
+              this.isUsableEmail(lower) &&
+              !lower.endsWith('.png') &&
+              !lower.endsWith('.jpg') &&
+              !lower.endsWith('.jpeg') &&
+              !lower.endsWith('.gif') &&
+              !lower.endsWith('.webp') &&
+              !lower.includes('@2x.')
+            );
+          }),
       ),
     ];
   }
 
   private pickBestEmail(emails: string[], websiteUrl: string) {
-    return emails
-      .filter((email) => this.isUsableEmail(email))
-      .sort(
-        (first, second) =>
-          this.emailScore(second, websiteUrl) - this.emailScore(first, websiteUrl),
-      )[0] ?? null;
+    return (
+      emails
+        .filter((email) => this.isUsableEmail(email))
+        .sort(
+          (first, second) =>
+            this.emailScore(second, websiteUrl) -
+            this.emailScore(first, websiteUrl),
+        )[0] ?? null
+    );
   }
 
   private isUsableEmail(email: string) {
@@ -724,7 +818,11 @@ export class ScraperService {
     while ((match = linkPattern.exec(html)) !== null && urls.size < 8) {
       const href = match[1];
 
-      if (!EMAIL_PAGE_KEYWORDS.some((keyword) => href.toLowerCase().includes(keyword))) {
+      if (
+        !EMAIL_PAGE_KEYWORDS.some((keyword) =>
+          href.toLowerCase().includes(keyword),
+        )
+      ) {
         continue;
       }
 
@@ -746,12 +844,16 @@ export class ScraperService {
   }
 
   private async openListingDetails(page: Page, listing: Locator) {
-    await listing.scrollIntoViewIfNeeded({ timeout: 5000 }).catch(() => undefined);
+    await listing
+      .scrollIntoViewIfNeeded({ timeout: 5000 })
+      .catch(() => undefined);
     await listing.click({ timeout: 7000 });
     await page.waitForTimeout(1200);
-    await page.locator('h1').first().waitFor({ state: 'visible', timeout: 7000 }).catch(
-      () => undefined,
-    );
+    await page
+      .locator('h1')
+      .first()
+      .waitFor({ state: 'visible', timeout: 7000 })
+      .catch(() => undefined);
   }
 
   private cleanWebsiteUrl(website: string | null) {
@@ -760,9 +862,15 @@ export class ScraperService {
 
     try {
       const parsed = new URL(url);
-      ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid'].forEach(
-        (param) => parsed.searchParams.delete(param),
-      );
+      [
+        'utm_source',
+        'utm_medium',
+        'utm_campaign',
+        'utm_term',
+        'utm_content',
+        'gclid',
+        'fbclid',
+      ].forEach((param) => parsed.searchParams.delete(param));
       parsed.hash = '';
 
       return parsed.toString();
@@ -896,7 +1004,9 @@ export class ScraperService {
   }
 
   private getSlowMo() {
-    const slowMo = Number(this.configService.get<string>('SCRAPER_SLOW_MO', '0'));
+    const slowMo = Number(
+      this.configService.get<string>('SCRAPER_SLOW_MO', '0'),
+    );
 
     return Number.isFinite(slowMo) && slowMo > 0 ? slowMo : undefined;
   }

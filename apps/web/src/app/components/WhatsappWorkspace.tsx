@@ -383,10 +383,10 @@ export default function WhatsappWorkspace() {
     <AppShell onRefresh={() => void refreshAll()} refreshing={refreshing}>
       <div className="flex flex-col gap-4 pb-20 xl:pb-6">
         <PageHeader
-          title="Send messages"
+          title="WhatsApp campaigns"
           description={
             connected
-              ? `Sending from ${linkedPhone}. Import contacts, search, test one, or queue bulk.`
+              ? `Sending from ${linkedPhone}. Import contacts, search, test one, or queue a WhatsApp bulk campaign.`
               : "Link your WhatsApp number on the Setup page before sending."
           }
           actions={

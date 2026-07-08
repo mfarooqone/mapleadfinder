@@ -65,10 +65,12 @@ export class Dialog360Provider implements WhatsAppProviderAdapter {
                 components: [
                   {
                     type: 'body',
-                    parameters: Object.values(payload.variables).map((value) => ({
-                      type: 'text',
-                      text: value,
-                    })),
+                    parameters: Object.values(payload.variables).map(
+                      (value) => ({
+                        type: 'text',
+                        text: value,
+                      }),
+                    ),
                   },
                 ],
               }
@@ -79,7 +81,9 @@ export class Dialog360Provider implements WhatsAppProviderAdapter {
 
     const json = await response.json().catch(() => null);
     if (!response.ok) {
-      throw new Error(`360dialog template send failed: ${JSON.stringify(json)}`);
+      throw new Error(
+        `360dialog template send failed: ${JSON.stringify(json)}`,
+      );
     }
 
     return {
@@ -90,13 +94,15 @@ export class Dialog360Provider implements WhatsAppProviderAdapter {
   }
 
   extractAccountReference(payload: unknown): AccountReference | null {
-    const externalId = (payload as any)?.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id;
+    const externalId = (payload as any)?.entry?.[0]?.changes?.[0]?.value
+      ?.metadata?.phone_number_id;
     return externalId ? { externalId } : null;
   }
 
   parseWebhookEvents(payload: unknown): ProviderWebhookEvent[] {
     const metaCompatible = payload as any;
-    const changes = metaCompatible?.entry?.flatMap((entry) => entry.changes ?? []) ?? [];
+    const changes =
+      metaCompatible?.entry?.flatMap((entry) => entry.changes ?? []) ?? [];
     const events: ProviderWebhookEvent[] = [];
 
     for (const change of changes) {

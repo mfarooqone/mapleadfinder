@@ -3,6 +3,7 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
 import { AuthService } from './auth.service';
 import type { AuthenticatedUser } from './auth.types';
+import { GoogleAuthDto } from './dto/google-auth.dto';
 import { LoginDto } from './dto/login.dto';
 import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 import { ResendSignupDto } from './dto/resend-signup.dto';
@@ -18,6 +19,12 @@ export class AuthController {
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Public()
+  @Post('google')
+  google(@Body() dto: GoogleAuthDto) {
+    return this.authService.google(dto);
   }
 
   @Public()

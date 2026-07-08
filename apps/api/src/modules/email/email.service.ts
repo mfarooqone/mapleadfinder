@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { JobStatus, JobType, Lead } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { promises as dns } from 'dns';
@@ -162,9 +166,9 @@ export class EmailService {
   async sendBulkEmail(dto: SendBulkEmailDto & { userId: string }) {
     const delaySeconds = EmailService.EMAIL_SEND_DELAY_SECONDS;
 
-    const uniqueLeadIds = [...new Set(dto.leadIds.map((id) => id.trim()))].filter(
-      Boolean,
-    );
+    const uniqueLeadIds = [
+      ...new Set(dto.leadIds.map((id) => id.trim())),
+    ].filter(Boolean);
     const leads = await this.prisma.lead.findMany({
       where: {
         userId: dto.userId,
@@ -425,10 +429,10 @@ export class EmailService {
       paused > 0 && pending === 0
         ? 'PAUSED'
         : pending > 0
-        ? 'RUNNING'
-        : failed > 0 && sent === 0
-          ? 'FAILED'
-          : 'COMPLETED';
+          ? 'RUNNING'
+          : failed > 0 && sent === 0
+            ? 'FAILED'
+            : 'COMPLETED';
 
     return this.prisma.emailCampaign.update({
       where: { id: campaign.id },
@@ -472,7 +476,9 @@ export class EmailService {
 
     const contacts = jobsWithCampaign
       .filter(({ payload }) => payload.campaignId === resolvedCampaignId)
-      .sort((left, right) => left.job.runAt.getTime() - right.job.runAt.getTime())
+      .sort(
+        (left, right) => left.job.runAt.getTime() - right.job.runAt.getTime(),
+      )
       .map(({ job, payload }) => ({
         jobId: job.id,
         leadId: job.leadId,
@@ -485,7 +491,9 @@ export class EmailService {
         lastError: job.lastError,
         updatedAt: job.updatedAt.toISOString(),
       }));
-    const sent = contacts.filter((contact) => contact.jobStatus === JobStatus.DONE).length;
+    const sent = contacts.filter(
+      (contact) => contact.jobStatus === JobStatus.DONE,
+    ).length;
     const failed = contacts.filter(
       (contact) => contact.jobStatus === JobStatus.FAILED,
     ).length;
@@ -570,7 +578,9 @@ export class EmailService {
     for (const job of matchingJobs.sort(
       (left, right) => left.runAt.getTime() - right.runAt.getTime(),
     )) {
-      nextRunAt = new Date(nextRunAt.getTime() + EmailService.EMAIL_SEND_DELAY_SECONDS * 1000);
+      nextRunAt = new Date(
+        nextRunAt.getTime() + EmailService.EMAIL_SEND_DELAY_SECONDS * 1000,
+      );
       await this.prisma.job.update({
         where: { id: job.id },
         data: {
@@ -613,7 +623,9 @@ export class EmailService {
     for (const job of matchingJobs.sort(
       (left, right) => left.runAt.getTime() - right.runAt.getTime(),
     )) {
-      nextRunAt = new Date(nextRunAt.getTime() + EmailService.EMAIL_SEND_DELAY_SECONDS * 1000);
+      nextRunAt = new Date(
+        nextRunAt.getTime() + EmailService.EMAIL_SEND_DELAY_SECONDS * 1000,
+      );
       await this.prisma.job.update({
         where: { id: job.id },
         data: {
@@ -785,7 +797,9 @@ export class EmailService {
   }
 
   private truncate(value: string, maxLength: number) {
-    return value.length <= maxLength ? value : `${value.slice(0, maxLength - 1)}…`;
+    return value.length <= maxLength
+      ? value
+      : `${value.slice(0, maxLength - 1)}…`;
   }
 
   private async validateDeliverableEmail(
@@ -810,7 +824,10 @@ export class EmailService {
       EmailService.DISPOSABLE_EMAIL_DOMAINS.has(domain) ||
       EmailService.PLACEHOLDER_EMAIL_DOMAINS.has(domain)
     ) {
-      return { valid: false, reason: 'Disposable or placeholder email domain.' };
+      return {
+        valid: false,
+        reason: 'Disposable or placeholder email domain.',
+      };
     }
 
     if (domainValidationCache.has(domain)) {

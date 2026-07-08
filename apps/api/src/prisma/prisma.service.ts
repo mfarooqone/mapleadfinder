@@ -18,7 +18,10 @@ export class PrismaService
   }
 
   async onModuleInit() {
-    if (process.env.NODE_ENV === 'test' || process.env.SKIP_DB_CONNECT === 'true') {
+    if (
+      process.env.NODE_ENV === 'test' ||
+      process.env.SKIP_DB_CONNECT === 'true'
+    ) {
       return;
     }
 

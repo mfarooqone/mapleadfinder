@@ -519,7 +519,8 @@ export class WahaProvider implements WhatsAppProviderAdapter {
     try {
       await this.startTyping(baseUrl, sessionName, apiKey, chatId);
       const delayMs =
-        delayOverrideMs ?? calculateTypingDelayMs(text, this.getTypingDelayConfig());
+        delayOverrideMs ??
+        calculateTypingDelayMs(text, this.getTypingDelayConfig());
       await this.sleep(delayMs);
       await this.stopTyping(baseUrl, sessionName, apiKey, chatId);
     } catch {
@@ -607,8 +608,7 @@ export class WahaProvider implements WhatsAppProviderAdapter {
       payload && typeof payload === 'object'
         ? (payload as Record<string, unknown>)
         : null;
-    const message =
-      typeof record?.message === 'string' ? record.message : null;
+    const message = typeof record?.message === 'string' ? record.message : null;
 
     if (
       message &&

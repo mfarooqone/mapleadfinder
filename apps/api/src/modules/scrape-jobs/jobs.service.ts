@@ -154,23 +154,11 @@ export class ScrapeJobsService {
     return this.leadsService.findByScrapeBatch(userId, batchId, query);
   }
 
-  removeScrapeBatch(
-    userId: string,
-    batchId: string,
-    deleteContacts = false,
-  ) {
-    return this.leadsService.removeScrapeBatch(
-      userId,
-      batchId,
-      deleteContacts,
-    );
+  removeScrapeBatch(userId: string, batchId: string, deleteContacts = false) {
+    return this.leadsService.removeScrapeBatch(userId, batchId, deleteContacts);
   }
 
-  removeLeadFromScrapeBatch(
-    userId: string,
-    batchId: string,
-    leadId: string,
-  ) {
+  removeLeadFromScrapeBatch(userId: string, batchId: string, leadId: string) {
     return this.leadsService.removeLeadFromScrapeBatch(userId, batchId, leadId);
   }
 

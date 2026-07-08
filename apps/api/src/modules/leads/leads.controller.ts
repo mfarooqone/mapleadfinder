@@ -98,7 +98,10 @@ export class LeadsController {
   }
 
   @Post(':id/wa-me-link/sent')
-  markLinkSent(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+  markLinkSent(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
     return this.leadsService.markLinkSent(user.id, id);
   }
 

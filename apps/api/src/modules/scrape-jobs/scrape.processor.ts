@@ -1,5 +1,10 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Job, Queue, Worker } from 'bullmq';
 import { ScraperService } from '../scraper/scraper.service';

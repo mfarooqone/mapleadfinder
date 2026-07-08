@@ -30,6 +30,7 @@ export class WebhookController {
   receive(
     @Param('provider') provider: string,
     @Query('userId') userId: string | undefined,
+    @Query('secret') secret: string | undefined,
     @Body() payload: unknown,
     @Headers() headers: Record<string, string | string[] | undefined>,
     @Req() request: Request & { rawBody?: Buffer },
@@ -40,6 +41,7 @@ export class WebhookController {
       headers,
       request.rawBody,
       userId,
+      secret,
     );
   }
 }

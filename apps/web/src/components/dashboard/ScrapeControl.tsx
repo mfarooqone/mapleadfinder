@@ -73,7 +73,7 @@ export function ScrapeControl({
           <input
             value={keyword}
             onChange={(event) => onKeywordChange(event.target.value)}
-            className="h-12 rounded-lg border border-[#cad1c6] px-4 text-base outline-none transition focus:border-[#256b55] focus:ring-4 focus:ring-[#256b55]/10"
+            className="h-12 rounded-lg border border-[#cad1c6] px-4 text-base outline-none transition focus:border-[#059669] focus:ring-4 focus:ring-[#059669]/10"
             placeholder="restaurants in Multan"
           />
         </label>
@@ -85,7 +85,7 @@ export function ScrapeControl({
             max={500}
             value={maxRecords}
             onChange={(event) => onMaxRecordsChange(event.target.value)}
-            className="h-12 rounded-lg border border-[#cad1c6] px-4 text-base outline-none transition focus:border-[#256b55] focus:ring-4 focus:ring-[#256b55]/10"
+            className="h-12 rounded-lg border border-[#cad1c6] px-4 text-base outline-none transition focus:border-[#059669] focus:ring-4 focus:ring-[#059669]/10"
             placeholder="120"
           />
         </label>
@@ -93,7 +93,7 @@ export function ScrapeControl({
           <button
             type="submit"
             disabled={isScraping}
-            className="h-12 rounded-lg bg-[#164c3b] px-6 font-semibold text-white transition hover:bg-[#0f3d2e] disabled:cursor-not-allowed disabled:bg-[#91a197]"
+            className="h-12 rounded-lg bg-[#059669] px-6 font-semibold text-white transition hover:bg-[#047857] disabled:cursor-not-allowed disabled:bg-[#91a197]"
           >
             {isScraping ? "Scraping..." : "Start scrape"}
           </button>
@@ -111,7 +111,7 @@ export function ScrapeControl({
             <button
               type="button"
               onClick={onDownload}
-              className="h-12 rounded-lg border border-[#256b55] bg-white px-5 font-semibold text-[#256b55] transition hover:bg-[#f0faf5]"
+              className="h-12 rounded-lg border border-[#059669] bg-white px-5 font-semibold text-[#059669] transition hover:bg-[#f0faf5]"
             >
               Download CSV
             </button>
@@ -124,7 +124,7 @@ export function ScrapeControl({
             onChange={(event) =>
               onFindDecisionMakersChange(event.target.checked)
             }
-            className="h-5 w-5 rounded border-[#cad1c6] accent-[#164c3b]"
+            className="h-5 w-5 rounded border-[#cad1c6] accent-[#059669]"
           />
           <span className="text-sm font-medium text-[#405149]">
             Find decision makers after scrape
@@ -163,14 +163,14 @@ export function ScrapeControl({
               <div className="flex flex-wrap items-center justify-end gap-2">
                 <Link
                   href="/dashboard/contacts"
-                  className="rounded-lg bg-[#164c3b] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0f3d2e]"
+                  className="rounded-lg bg-[#059669] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#047857]"
                 >
                   Open Contacts
                 </Link>
                 <button
                   type="button"
                   onClick={onDownload}
-                  className="rounded-lg border border-[#256b55] bg-white px-4 py-2 text-sm font-semibold text-[#256b55] transition hover:bg-[#f0faf5]"
+                  className="rounded-lg border border-[#059669] bg-white px-4 py-2 text-sm font-semibold text-[#059669] transition hover:bg-[#f0faf5]"
                 >
                   Download CSV
                 </button>
