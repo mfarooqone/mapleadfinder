@@ -284,11 +284,13 @@ model ScrapeBatch {
 model ScrapeBatchLead {
   scrapeBatchId String
   leadId        String
+  position      Int         @default(0)
   createdAt     DateTime    @default(now())
   scrapeBatch   ScrapeBatch @relation(fields: [scrapeBatchId], references: [id], onDelete: Cascade)
   lead          Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   @@id([scrapeBatchId, leadId])
+  @@index([scrapeBatchId, position])
   @@index([leadId])
 }
 

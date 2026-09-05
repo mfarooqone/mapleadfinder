@@ -19,6 +19,10 @@ import { MessagesService } from '../messages/messages.service';
 import { SecretVaultService } from '../security/secret-vault.service';
 import { EmailAiService } from '../email/email-ai.service';
 import { readVoiceFromMessageMetadata } from '../../common/utils/voice-message.util';
+import {
+  htmlToPlainText,
+  isHtmlEmailBody,
+} from '../../common/utils/email-html.util';
 import { WhatsAppProviderRegistryService } from '../whatsapp/providers/whatsapp-provider-registry.service';
 import {
   AiReplyJobPayload,
@@ -406,8 +410,9 @@ export class JobsProcessor {
     const replyTo = settings.replyToEmail ?? undefined;
     let subject = payload.subject;
     let body = payload.body;
+    const isHtml = isHtmlEmailBody(body);
 
-    if (payload.aiPersonalizationEnabled) {
+    if (payload.aiPersonalizationEnabled === true && !isHtml) {
       if (!payload.leadId) {
         throw new Error('AI personalization requires a lead.');
       }
@@ -467,13 +472,15 @@ export class JobsProcessor {
           : undefined,
     });
 
+    const plainText = isHtml ? htmlToPlainText(body) : body;
     const result = await transporter.sendMail({
       from: smtpFromName
         ? `"${smtpFromName}" <${smtpFromEmail}>`
         : smtpFromEmail,
       to: payload.to,
       subject,
-      text: body,
+      text: plainText || undefined,
+      html: isHtml ? body : undefined,
       replyTo,
     });
     const accepted = Array.isArray(result.accepted) ? result.accepted : [];
@@ -587,6 +594,9 @@ export class JobsProcessor {
     const from = input.fromName
       ? `${this.quoteHeaderName(input.fromName)} <${input.fromEmail}>`
       : input.fromEmail;
+    const isHtml = isHtmlEmailBody(input.body);
+    const plainText = isHtml ? htmlToPlainText(input.body) : input.body;
+    const normalizedPlain = plainText.replace(/\r?\n/g, '\r\n');
     const headers = [
       `From: ${from}`,
       `To: ${input.to}`,
@@ -595,11 +605,22 @@ export class JobsProcessor {
       `Date: ${input.date.toUTCString()}`,
       `Message-ID: ${input.messageId}`,
       'MIME-Version: 1.0',
-      'Content-Type: text/plain; charset=utf-8',
-      'Content-Transfer-Encoding: 8bit',
     ].filter((header): header is string => Boolean(header));
 
-    return `${headers.join('\r\n')}\r\n\r\n${input.body.replace(/\r?\n/g, '\r\n')}`;
+    if (!isHtml) {
+      return `${[
+        ...headers,
+        'Content-Type: text/plain; charset=utf-8',
+        'Content-Transfer-Encoding: 8bit',
+      ].join('\r\n')}\r\n\r\n${normalizedPlain}`;
+    }
+
+    const boundary = `----=_LeadOutreach_${input.messageId.replace(/[^a-zA-Z0-9]/g, '')}`;
+    const htmlBody = input.body.replace(/\r?\n/g, '\r\n');
+    return `${[
+      ...headers,
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    ].join('\r\n')}\r\n\r\n--${boundary}\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n${normalizedPlain}\r\n--${boundary}\r\nContent-Type: text/html; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n${htmlBody}\r\n--${boundary}--\r\n`;
   }
 
   private quoteHeaderName(value: string) {

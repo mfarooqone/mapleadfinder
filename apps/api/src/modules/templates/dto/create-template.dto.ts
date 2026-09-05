@@ -31,6 +31,7 @@ export class CreateTemplateDto {
   subject?: string;
 
   @IsString()
+  @MaxLength(2_000_000)
   content: string;
 
   @IsOptional()

@@ -10,6 +10,23 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
+
+function toStrictBoolean(value: unknown): boolean | undefined {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (value === 'true' || value === 1 || value === '1') {
+    return true;
+  }
+  if (value === 'false' || value === 0 || value === '0') {
+    return false;
+  }
+  return Boolean(value);
+}
 
 export class SendBulkEmailDto {
   @IsArray()
@@ -23,7 +40,7 @@ export class SendBulkEmailDto {
   subjectTemplate: string;
 
   @IsString()
-  @MaxLength(5000)
+  @MaxLength(2_000_000)
   bodyTemplate: string;
 
   @IsOptional()
@@ -40,6 +57,7 @@ export class SendBulkEmailDto {
   selectedTemplateId?: string;
 
   @IsOptional()
+  @Transform(({ value }) => toStrictBoolean(value))
   @IsBoolean()
   aiPersonalizationEnabled?: boolean;
 

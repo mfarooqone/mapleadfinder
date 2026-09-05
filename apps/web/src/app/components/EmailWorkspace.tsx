@@ -39,6 +39,7 @@ import {
   type SmtpSettings,
   type TemplateRecord,
 } from "@/lib/backend";
+import { isHtmlEmailBody } from "@/lib/email-html";
 import AppShell from "./AppShell";
 import PageHeader, { PageLink } from "./PageHeader";
 import StatusBanner, { type BannerState } from "./StatusBanner";
@@ -46,6 +47,7 @@ import { fetchLeads } from "./dashboard-data";
 
 const EMAIL_CAMPAIGN_STORAGE_KEY = "lead_outreach_last_email_campaign";
 const EMAIL_TEMPLATE_STORAGE_KEY = "lead_outreach_last_email_template";
+const EMAIL_AI_SEND_STORAGE_KEY = "lead_outreach_email_ai_personalization";
 const EMAIL_SEND_DELAY_SECONDS = 15;
 const DECISION_MAKER_BATCH_SIZE = 50;
 const BLOCKED_EMAIL_DOMAINS = new Set([
@@ -141,7 +143,7 @@ export default function EmailWorkspace() {
     mistralModel: "mistral-large-latest",
     isActive: true,
   });
-  const [aiPersonalizationEnabled, setAiPersonalizationEnabled] = useState(true);
+  const [aiPersonalizationEnabled, setAiPersonalizationEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [queueing, setQueueing] = useState(false);
@@ -193,6 +195,7 @@ export default function EmailWorkspace() {
     null;
   const renderedSubject = renderEmailTemplate(subjectTemplate, previewContact);
   const renderedBody = renderEmailTemplate(bodyTemplate, previewContact);
+  const bodyIsHtml = isHtmlEmailBody(bodyTemplate);
 
   const loadContactsForBatch = async (batchId: string) => {
     const leads = batchId
@@ -223,6 +226,15 @@ export default function EmailWorkspace() {
         setSelectedTemplateId(storedTemplate.id);
         setSubjectTemplate(storedTemplate.subject ?? "");
         setBodyTemplate(storedTemplate.content);
+        if (isHtmlEmailBody(storedTemplate.content)) {
+          setAiPersonalizationEnabled(false);
+          window.localStorage.setItem(EMAIL_AI_SEND_STORAGE_KEY, "false");
+        }
+      }
+      if (!isHtmlEmailBody(storedTemplate?.content ?? "")) {
+        setAiPersonalizationEnabled(
+          window.localStorage.getItem(EMAIL_AI_SEND_STORAGE_KEY) === "true",
+        );
       }
     }
     setSmtpSettings(settings);
@@ -323,6 +335,12 @@ export default function EmailWorkspace() {
     if (!template) return;
     setSubjectTemplate(template.subject ?? "");
     setBodyTemplate(template.content);
+    if (isHtmlEmailBody(template.content)) {
+      setAiPersonalizationEnabled(false);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(EMAIL_AI_SEND_STORAGE_KEY, "false");
+      }
+    }
   };
 
   const handleQueue = async () => {
@@ -348,7 +366,7 @@ export default function EmailWorkspace() {
         bodyTemplate,
         minDelaySeconds: EMAIL_SEND_DELAY_SECONDS,
         maxDelaySeconds: EMAIL_SEND_DELAY_SECONDS,
-        aiPersonalizationEnabled,
+        aiPersonalizationEnabled: Boolean(aiPersonalizationEnabled) && !isHtmlEmailBody(bodyTemplate),
         selectedTemplateId: selectedTemplateId || undefined,
         campaignName:
           templates.find((template) => template.id === selectedTemplateId)?.name ||
@@ -831,17 +849,34 @@ export default function EmailWorkspace() {
                   }
                   className="mt-1"
                 />
-                Save selected provider, model, and API key.
+                Keep AI provider enabled in account settings (saved with Save AI).
               </label>
 
-              <label className="mt-2 flex items-start gap-2 text-sm text-emerald-950">
+              <label className="mt-3 flex items-start gap-2 rounded-md border border-emerald-200 bg-white p-3 text-sm font-medium text-emerald-950">
                 <input
                   type="checkbox"
-                  checked={aiPersonalizationEnabled}
-                  onChange={(event) => setAiPersonalizationEnabled(event.target.checked)}
+                  checked={aiPersonalizationEnabled && !bodyIsHtml}
+                  disabled={bodyIsHtml}
+                  onChange={(event) => {
+                    const enabled = event.target.checked;
+                    setAiPersonalizationEnabled(enabled);
+                    if (typeof window !== "undefined") {
+                      window.localStorage.setItem(
+                        EMAIL_AI_SEND_STORAGE_KEY,
+                        enabled ? "true" : "false",
+                      );
+                    }
+                  }}
                   className="mt-1"
                 />
-                Customize selected emails with AI before sending.
+                <span>
+                  Use AI for this campaign
+                  <span className="mt-1 block text-xs font-normal text-emerald-800">
+                    {bodyIsHtml
+                      ? "Disabled for HTML templates so your layout is sent unchanged."
+                      : "Off = send your selected template as written (placeholders only). On = rewrite each email with AI before SMTP send."}
+                  </span>
+                </span>
               </label>
 
               <div className="mt-3 flex flex-wrap gap-2">
@@ -897,11 +932,13 @@ export default function EmailWorkspace() {
                 {templates.map((template) => (
                   <option key={template.id} value={template.id}>
                     {template.name}
+                    {isHtmlEmailBody(template.content) ? " (HTML)" : ""}
                   </option>
                 ))}
               </select>
               <p className="mt-1 text-xs text-neutral-500">
-                Create email templates on the Templates page.
+                Create plain or HTML email templates on the Templates page. HTML
+                is sent as rich email (not rewritten by AI).
               </p>
             </div>
 
@@ -914,13 +951,31 @@ export default function EmailWorkspace() {
               />
             </div>
             <div>
-              <label className="label">Body</label>
+              <label className="label">
+                Body {bodyIsHtml ? "(HTML detected)" : ""}
+              </label>
               <textarea
                 value={bodyTemplate}
-                onChange={(event) => setBodyTemplate(event.target.value)}
-                rows={12}
-                className="input resize-none"
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setBodyTemplate(next);
+                  if (isHtmlEmailBody(next) && aiPersonalizationEnabled) {
+                    setAiPersonalizationEnabled(false);
+                    if (typeof window !== "undefined") {
+                      window.localStorage.setItem(EMAIL_AI_SEND_STORAGE_KEY, "false");
+                    }
+                  }
+                }}
+                rows={bodyIsHtml ? 16 : 12}
+                className={`input resize-y ${bodyIsHtml ? "font-mono text-xs leading-5" : ""}`}
+                spellCheck={!bodyIsHtml}
               />
+              {bodyIsHtml ? (
+                <p className="mt-1 text-xs text-sky-800">
+                  HTML template will be sent as a rich email. Placeholders like{" "}
+                  {"{{firstName}}"} still work. AI rewrite is disabled for HTML.
+                </p>
+              ) : null}
             </div>
             <div className="hint-box hint-box-info text-sm">
               Emails are queued one-by-one every {EMAIL_SEND_DELAY_SECONDS} seconds.
@@ -929,9 +984,18 @@ export default function EmailWorkspace() {
               <label className="label">Preview</label>
               <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700">
                 <p className="font-semibold text-neutral-900">{renderedSubject}</p>
-                <pre className="mt-2 whitespace-pre-wrap font-sans text-xs leading-5">
-                  {renderedBody}
-                </pre>
+                {bodyIsHtml ? (
+                  <iframe
+                    title="Campaign HTML preview"
+                    sandbox=""
+                    srcDoc={renderedBody}
+                    className="mt-2 h-[420px] w-full rounded-md border border-neutral-200 bg-white"
+                  />
+                ) : (
+                  <pre className="mt-2 whitespace-pre-wrap font-sans text-xs leading-5">
+                    {renderedBody}
+                  </pre>
+                )}
               </div>
             </div>
             <button
@@ -942,14 +1006,14 @@ export default function EmailWorkspace() {
                 selectedWithEmail === 0 ||
                 !subjectTemplate.trim() ||
                 !bodyTemplate.trim() ||
-                (aiPersonalizationEnabled && !aiSettings?.configured)
+                (aiPersonalizationEnabled && !bodyIsHtml && !aiSettings?.configured)
               }
               className="btn btn-primary w-full"
             >
               <Send className="h-4 w-4" />
               {queueing
                 ? "Queueing..."
-                : aiPersonalizationEnabled
+                : aiPersonalizationEnabled && !bodyIsHtml
                   ? `AI customize + send to ${selectedWithEmail} contact(s)`
                   : `Queue email to ${selectedWithEmail} contact(s)`}
             </button>

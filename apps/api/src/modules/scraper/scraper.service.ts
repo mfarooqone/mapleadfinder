@@ -291,31 +291,51 @@ export class ScraperService {
 
         try {
           const target = listingTargets[index];
-          let listingName = target?.name;
+          let lastError: unknown;
 
-          if (target?.url) {
-            await page.goto(target.url, {
-              waitUntil: 'domcontentloaded',
-              timeout: 60000,
-            });
-            await this.waitForVisible(page.locator('h1').first(), 15000);
-          } else {
-            const listing = listings.nth(index);
-            listingName = await this.extractListingName(listing);
-            await this.openListingDetails(page, listing);
+          for (let attempt = 1; attempt <= 2; attempt += 1) {
+            try {
+              let listingName = target?.name;
+
+              if (target?.url) {
+                await page.goto(target.url, {
+                  waitUntil: 'domcontentloaded',
+                  timeout: 60000,
+                });
+                await this.waitForVisible(page.locator('h1').first(), 15000);
+              } else {
+                const listing = listings.nth(index);
+                listingName = await this.extractListingName(listing);
+                await this.openListingDetails(page, listing);
+              }
+
+              const lead = await this.extractLead(page, listingName);
+
+              if (!lead) {
+                throw new Error('Business details did not render');
+              }
+
+              leads.push(lead);
+              const saved = await this.leadsService.saveScrapedLeadsToBatch(
+                userId,
+                scrapeBatch,
+                [this.toPrismaLead(lead)],
+                keyword,
+              );
+              savedCount = saved.savedTotal;
+              lastError = undefined;
+              break;
+            } catch (error) {
+              lastError = error;
+
+              if (attempt < 2) {
+                await page.waitForTimeout(1500);
+              }
+            }
           }
 
-          const lead = await this.extractLead(page, listingName);
-
-          if (lead) {
-            leads.push(lead);
-            const saved = await this.leadsService.saveScrapedLeadsToBatch(
-              userId,
-              scrapeBatch,
-              [this.toPrismaLead(lead)],
-              keyword,
-            );
-            savedCount = saved.savedTotal;
+          if (lastError) {
+            throw lastError;
           }
         } catch (error) {
           this.logger.warn(
@@ -448,6 +468,7 @@ export class ScraperService {
       try {
         const normalizedUrl = new URL(target.url, page.url());
         normalizedUrl.search = '';
+        normalizedUrl.searchParams.set('hl', 'en');
         targets.set(normalizedUrl.toString(), {
           url: normalizedUrl.toString(),
           name: target.name,
@@ -460,7 +481,7 @@ export class ScraperService {
 
   private async openGoogleMapsSearch(page: Page, keyword: string) {
     await page.goto(
-      `https://www.google.com/maps/search/${encodeURIComponent(keyword)}`,
+      `https://www.google.com/maps/search/${encodeURIComponent(keyword)}?hl=en`,
       {
         waitUntil: 'domcontentloaded',
         timeout: 60000,
@@ -491,9 +512,17 @@ export class ScraperService {
 
   private async acceptGoogleConsent(page: Page) {
     const consentButtons = [
-      page.getByRole('button', { name: /accept all/i }).first(),
+      page
+        .getByRole('button', {
+          name: /accept all|alle akzeptieren|tout accepter|aceptar todo/i,
+        })
+        .first(),
       page.getByRole('button', { name: /i agree/i }).first(),
-      page.getByRole('button', { name: /reject all/i }).first(),
+      page
+        .getByRole('button', {
+          name: /reject all|alle ablehnen|tout refuser|rechazar todo/i,
+        })
+        .first(),
     ];
 
     for (const button of consentButtons) {
@@ -516,14 +545,36 @@ export class ScraperService {
       return null;
     }
 
-    const ratingLabel = await this.safeAttribute(
-      page.locator('div[role="img"][aria-label*="stars"]').first(),
+    const ratingLabel = await this.firstAttribute(
+      [
+        page
+          .locator('div.F7nice [role="img"][aria-label*="stars"]')
+          .first(),
+        page
+          .locator('div.F7nice [role="img"][aria-label*="Sterne"]')
+          .first(),
+        page.locator('[role="img"][aria-label*="stars"]').last(),
+      ],
       'aria-label',
     );
-    const reviewsText = await this.firstText([
-      page.locator('button[jsaction*="pane.rating.moreReviews"]').first(),
-      page.locator('span[aria-label*="reviews"]').first(),
-    ]);
+    const reviewsLabel = await this.firstAttribute(
+      [
+        page
+          .locator('div.F7nice [role="img"][aria-label$="reviews"]')
+          .first(),
+        page
+          .locator('div.F7nice [role="img"][aria-label$="Rezensionen"]')
+          .first(),
+        page.locator('[role="img"][aria-label*="reviews"]').last(),
+      ],
+      'aria-label',
+    );
+    const reviewsText =
+      reviewsLabel ??
+      (await this.firstText([
+        page.locator('button[jsaction*="moreReviews"]').first(),
+        page.locator('span[aria-label*="reviews"]').last(),
+      ]));
     const categoryText = await this.firstText([
       page.locator('button[jsaction*="pane.rating.category"]').first(),
       page.locator('button[aria-label^="Category:"]').first(),
@@ -844,14 +895,19 @@ export class ScraperService {
   }
 
   private async openListingDetails(page: Page, listing: Locator) {
-    await listing
+    const anchor = listing
+      .locator('a[href*="/maps/place/"], a[href*="google.com/maps/place/"]')
+      .first();
+    const clickTarget = (await anchor.count()) > 0 ? anchor : listing;
+
+    await clickTarget
       .scrollIntoViewIfNeeded({ timeout: 5000 })
       .catch(() => undefined);
-    await listing.click({ timeout: 7000 });
+    await clickTarget.click({ timeout: 7000 });
     await page.waitForTimeout(1200);
     await page
-      .locator('h1')
-      .first()
+      .locator('div.F7nice')
+      .last()
       .waitFor({ state: 'visible', timeout: 7000 })
       .catch(() => undefined);
   }
@@ -896,7 +952,12 @@ export class ScraperService {
   }
 
   private async extractListingName(listing: Locator) {
-    const ariaLabel = await this.safeAttribute(listing, 'aria-label');
+    const anchor = listing
+      .locator('a[href*="/maps/place/"], a[href*="google.com/maps/place/"]')
+      .first();
+    const ariaLabel =
+      (await this.safeAttribute(anchor, 'aria-label')) ??
+      (await this.safeAttribute(listing, 'aria-label'));
 
     if (ariaLabel && !this.isGenericHeading(ariaLabel)) {
       return ariaLabel;
@@ -966,15 +1027,19 @@ export class ScraperService {
   }
 
   private parseRating(label: string | null) {
-    const match = label?.match(/(\d+(?:\.\d+)?)\s*stars?/i);
-    const rating = match ? Number(match[1]) : null;
+    const match = label?.match(/(\d+(?:[.,]\d+)?)\s*(?:stars?|sterne)/i);
+    const rating = match ? Number(match[1].replace(',', '.')) : null;
 
     return rating !== null && Number.isFinite(rating) ? rating : null;
   }
 
   private parseReviewsCount(label: string | null) {
-    const match = label?.match(/([\d,]+)\s*reviews?/i);
-    const reviewsCount = match ? Number(match[1].replace(/,/g, '')) : null;
+    const match = label?.match(
+      /(\d[\d.,\s]*)\s*(?:reviews?|rezensionen|bewertungen)/i,
+    );
+    const reviewsCount = match
+      ? Number(match[1].replace(/[^\d]/g, ''))
+      : null;
 
     return reviewsCount !== null && Number.isFinite(reviewsCount)
       ? reviewsCount

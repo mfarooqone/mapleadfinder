@@ -670,6 +670,7 @@ export type TemplateRecord = {
   language: string;
   category: string;
   status: string;
+  metadata?: Record<string, string> | null;
   createdAt: string;
   updatedAt: string;
 };

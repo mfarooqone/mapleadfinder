@@ -6,9 +6,9 @@
 #   ./deploy/scripts/deploy-from-mac.sh api      # API only
 set -euo pipefail
 
-VPS_HOST="${VPS_HOST:-root@69.62.124.22}"
+VPS_HOST="${VPS_HOST:-root@169.58.37.234}"
 APP_DIR="${APP_DIR:-/opt/lead-outreach-platform}"
-SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519}"
+SSH_KEY="${SSH_KEY:-$HOME/.ssh/hostinger_vps}"
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 TARGET="${1:-all}"
 

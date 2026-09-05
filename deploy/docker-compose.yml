@@ -61,6 +61,8 @@ services:
       WAHA_BASE_URL: http://waha:3000
     volumes:
       - baileys_sessions:/app/sessions/baileys
+    ports:
+      - "127.0.0.1:3101:3001"
     labels:
       - traefik.enable=true
       - traefik.docker.network=${TRAEFIK_NETWORK:-traefik_public}
@@ -91,6 +93,8 @@ services:
       BACKEND_API_BASE_URL: http://api:3001
       NEXT_PUBLIC_API_BASE_URL: /api/backend
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    ports:
+      - "127.0.0.1:3100:3000"
     labels:
       - traefik.enable=true
       - traefik.docker.network=${TRAEFIK_NETWORK:-traefik_public}
@@ -136,6 +140,8 @@ services:
       WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD:?Set WAHA_DASHBOARD_PASSWORD in deploy/.env}
     volumes:
       - waha_sessions:/app/.sessions
+    ports:
+      - "127.0.0.1:3102:3000"
     networks:
       - internal
       - traefik

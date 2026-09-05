@@ -951,11 +951,20 @@ export class WhatsappService {
       );
     }
 
-    const session = await this.ensureWahaSessionStarted(
+    const existingSession = await this.getWahaSession(
       resolvedSessionName,
-      undefined,
       config,
-    );
+    ).catch(() => null);
+    const session = existingSession
+      ? await this.ensureWahaSessionStarted(
+          resolvedSessionName,
+          existingSession,
+          config,
+        )
+      : await this.upsertWahaSession({
+          sessionName: resolvedSessionName,
+          config,
+        });
     const readySession = await this.waitForWahaSessionStatuses(
       resolvedSessionName,
       ['SCAN_QR_CODE', 'WORKING'],

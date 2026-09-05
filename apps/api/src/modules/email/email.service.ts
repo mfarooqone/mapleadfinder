@@ -12,6 +12,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { SecretVaultService } from '../security/secret-vault.service';
 import { SendBulkEmailDto } from './dto/send-bulk-email.dto';
 import { UpsertSmtpSettingsDto } from './dto/upsert-smtp-settings.dto';
+import { EmailAiService } from './email-ai.service';
+import {
+  isHtmlEmailBody,
+  summarizeEmailBody,
+} from '../../common/utils/email-html.util';
 
 @Injectable()
 export class EmailService {
@@ -38,6 +43,7 @@ export class EmailService {
     private readonly prisma: PrismaService,
     private readonly jobsService: JobsService,
     private readonly secretVaultService: SecretVaultService,
+    private readonly emailAiService: EmailAiService,
   ) {}
 
   async getSmtpSettings(userId: string) {
@@ -165,6 +171,25 @@ export class EmailService {
 
   async sendBulkEmail(dto: SendBulkEmailDto & { userId: string }) {
     const delaySeconds = EmailService.EMAIL_SEND_DELAY_SECONDS;
+    const bodyTemplate = dto.bodyTemplate.trim();
+    const isHtmlTemplate = isHtmlEmailBody(bodyTemplate);
+    const aiPersonalizationEnabled =
+      dto.aiPersonalizationEnabled === true && !isHtmlTemplate;
+
+    if (dto.aiPersonalizationEnabled === true && isHtmlTemplate) {
+      throw new BadRequestException(
+        'AI personalization cannot rewrite HTML email templates. Turn off “Use AI for this campaign” to send the HTML template as written.',
+      );
+    }
+
+    if (aiPersonalizationEnabled) {
+      const aiSettings = await this.emailAiService.getSettings(dto.userId);
+      if (!aiSettings.configured || aiSettings.isActive === false) {
+        throw new BadRequestException(
+          'AI personalization is on for this campaign, but AI is not configured or is disabled in settings. Turn off “Use AI for this campaign” to send the template as written, or save an active AI provider first.',
+        );
+      }
+    }
 
     const uniqueLeadIds = [
       ...new Set(dto.leadIds.map((id) => id.trim())),
@@ -193,9 +218,9 @@ export class EmailService {
         userId: dto.userId,
         name: dto.campaignName?.trim() || null,
         subjectTemplate: dto.subjectTemplate.trim(),
-        bodyTemplatePreview: this.truncate(dto.bodyTemplate.trim(), 500),
-        aiPersonalizationEnabled: dto.aiPersonalizationEnabled ?? false,
-        provider: dto.aiPersonalizationEnabled
+        bodyTemplatePreview: summarizeEmailBody(bodyTemplate, 500),
+        aiPersonalizationEnabled,
+        provider: aiPersonalizationEnabled
           ? (
               await this.prisma.emailAiSettings.findUnique({
                 where: { userId: dto.userId },
@@ -269,7 +294,7 @@ export class EmailService {
         decisionMaker,
       ).trim();
       const body = this.renderTemplate(
-        dto.bodyTemplate,
+        bodyTemplate,
         lead,
         decisionMaker,
       ).trim();
@@ -288,7 +313,7 @@ export class EmailService {
           subject,
           body,
           from: dto.fromEmail,
-          aiPersonalizationEnabled: dto.aiPersonalizationEnabled ?? false,
+          aiPersonalizationEnabled,
           decisionMakerId: decisionMaker?.id,
           decisionMakerName: decisionMaker?.name ?? undefined,
           decisionMakerTitle: decisionMaker?.title ?? undefined,
@@ -304,7 +329,7 @@ export class EmailService {
         delaySeconds,
         jobId: job.id,
         subject,
-        bodyPreview: this.truncate(body, 180),
+        bodyPreview: summarizeEmailBody(body, 180),
       });
     }
 

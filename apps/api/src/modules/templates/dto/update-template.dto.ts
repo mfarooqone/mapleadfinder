@@ -29,6 +29,7 @@ export class UpdateTemplateDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(2_000_000)
   content?: string;
 
   @IsOptional()

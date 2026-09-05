@@ -8,11 +8,13 @@ import {
   postJson,
   type TemplateRecord,
 } from "@/lib/backend";
+import { isHtmlEmailBody, summarizeEmailBody } from "@/lib/email-html";
 import AppShell from "./AppShell";
 import PageHeader from "./PageHeader";
 import StatusBanner, { type BannerState } from "./StatusBanner";
 
 type TemplateChannel = "WHATSAPP" | "EMAIL";
+type EmailBodyFormat = "PLAIN" | "HTML";
 
 const CHANNELS: Array<{ label: string; value: TemplateChannel }> = [
   { label: "WhatsApp", value: "WHATSAPP" },
@@ -26,6 +28,7 @@ export default function TemplatesWorkspace() {
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [content, setContent] = useState("");
+  const [emailFormat, setEmailFormat] = useState<EmailBodyFormat>("PLAIN");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -38,6 +41,8 @@ export default function TemplatesWorkspace() {
       ),
     [activeChannel, templates],
   );
+
+  const contentLooksHtml = isHtmlEmailBody(content);
 
   const loadTemplates = async () => {
     const nextTemplates = await getJson<TemplateRecord[]>("/templates");
@@ -72,6 +77,7 @@ export default function TemplatesWorkspace() {
     setName("");
     setSubject("");
     setContent("");
+    setEmailFormat("PLAIN");
   };
 
   const refreshAll = async () => {
@@ -96,6 +102,11 @@ export default function TemplatesWorkspace() {
     setName(template.name);
     setSubject(template.subject ?? "");
     setContent(template.content);
+    setEmailFormat(
+      (template.channel ?? "WHATSAPP") === "EMAIL" && isHtmlEmailBody(template.content)
+        ? "HTML"
+        : "PLAIN",
+    );
   };
 
   const saveTemplate = async () => {
@@ -110,6 +121,13 @@ export default function TemplatesWorkspace() {
         category: activeChannel === "EMAIL" ? "EMAIL" : "MARKETING",
         language: "en_US",
         submitForApproval: false,
+        metadata:
+          activeChannel === "EMAIL"
+            ? {
+                format:
+                  emailFormat === "HTML" || contentLooksHtml ? "HTML" : "PLAIN",
+              }
+            : undefined,
       };
 
       if (editingTemplateId) {
@@ -147,7 +165,7 @@ export default function TemplatesWorkspace() {
       <div className="flex flex-col gap-4 pb-20 xl:pb-6">
         <PageHeader
           title="Templates"
-          description="Create and edit WhatsApp and email templates."
+          description="Create and edit WhatsApp and email templates, including full HTML emails."
           actions={
             <button
               type="button"
@@ -211,24 +229,73 @@ export default function TemplatesWorkspace() {
             ) : null}
           </div>
 
+          {activeChannel === "EMAIL" ? (
+            <div className="segmented w-full sm:w-auto">
+              {(
+                [
+                  { label: "Plain text", value: "PLAIN" as const },
+                  { label: "HTML email", value: "HTML" as const },
+                ] as const
+              ).map((format) => (
+                <button
+                  key={format.value}
+                  type="button"
+                  onClick={() => setEmailFormat(format.value)}
+                  className={`segmented-btn ${
+                    emailFormat === format.value ? "active" : ""
+                  }`}
+                >
+                  {format.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
           <div>
-            <label className="label">Template body</label>
+            <label className="label">
+              {activeChannel === "EMAIL" && emailFormat === "HTML"
+                ? "HTML body"
+                : "Template body"}
+            </label>
             <textarea
               value={content}
-              onChange={(event) => setContent(event.target.value)}
-              rows={activeChannel === "EMAIL" ? 10 : 5}
-              placeholder={
-                activeChannel === "EMAIL"
-                  ? "Dear {{firstName}},\n\n..."
-                  : "Hi {{firstName}}, quick question about {{website}}..."
+              onChange={(event) => {
+                const next = event.target.value;
+                setContent(next);
+                if (activeChannel === "EMAIL" && isHtmlEmailBody(next)) {
+                  setEmailFormat("HTML");
+                }
+              }}
+              rows={
+                activeChannel === "EMAIL" && emailFormat === "HTML" ? 18 : activeChannel === "EMAIL" ? 10 : 5
               }
-              className="input resize-none"
+              placeholder={
+                activeChannel === "EMAIL" && emailFormat === "HTML"
+                  ? "<!DOCTYPE html>\n<html>\n...\nPaste full HTML email markup here. Placeholders like {{firstName}} still work.\n</html>"
+                  : activeChannel === "EMAIL"
+                    ? "Dear {{firstName}},\n\n..."
+                    : "Hi {{firstName}}, quick question about {{website}}..."
+              }
+              className="input resize-y font-mono text-xs leading-5"
+              spellCheck={emailFormat !== "HTML"}
             />
             <p className="mt-1 text-xs text-neutral-500">
               Placeholders: {"{{firstName}}"}, {"{{name}}"}, {"{{category}}"},{" "}
-              {"{{website}}"}
+              {"{{website}}"}. HTML emails support embedded images and table layouts.
             </p>
           </div>
+
+          {activeChannel === "EMAIL" && emailFormat === "HTML" && content.trim() ? (
+            <div>
+              <label className="label">HTML preview</label>
+              <iframe
+                title="Email HTML preview"
+                sandbox=""
+                srcDoc={content}
+                className="h-[420px] w-full rounded-lg border border-neutral-200 bg-white"
+              />
+            </div>
+          ) : null}
 
           <div className="flex flex-wrap gap-2">
             <button
@@ -277,36 +344,46 @@ export default function TemplatesWorkspace() {
             </div>
           ) : activeTemplates.length ? (
             <div className="grid gap-3 md:grid-cols-2">
-              {activeTemplates.map((template) => (
-                <article
-                  key={template.id}
-                  className="rounded-lg border border-neutral-200 bg-white p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="truncate font-semibold text-neutral-900">
-                        {template.name}
-                      </h3>
-                      {template.subject ? (
-                        <p className="mt-1 truncate text-sm text-neutral-600">
-                          {template.subject}
-                        </p>
-                      ) : null}
+              {activeTemplates.map((template) => {
+                const html = isHtmlEmailBody(template.content);
+                return (
+                  <article
+                    key={template.id}
+                    className="rounded-lg border border-neutral-200 bg-white p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="truncate font-semibold text-neutral-900">
+                            {template.name}
+                          </h3>
+                          {html ? (
+                            <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-800">
+                              HTML
+                            </span>
+                          ) : null}
+                        </div>
+                        {template.subject ? (
+                          <p className="mt-1 truncate text-sm text-neutral-600">
+                            {template.subject}
+                          </p>
+                        ) : null}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => editTemplate(template)}
+                        className="btn btn-secondary text-xs"
+                      >
+                        <Edit3 className="h-3.5 w-3.5" />
+                        Edit
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => editTemplate(template)}
-                      className="btn btn-secondary text-xs"
-                    >
-                      <Edit3 className="h-3.5 w-3.5" />
-                      Edit
-                    </button>
-                  </div>
-                  <p className="mt-3 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-neutral-600">
-                    {template.content}
-                  </p>
-                </article>
-              ))}
+                    <p className="mt-3 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-neutral-600">
+                      {summarizeEmailBody(template.content, 220)}
+                    </p>
+                  </article>
+                );
+              })}
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center text-sm text-neutral-500">

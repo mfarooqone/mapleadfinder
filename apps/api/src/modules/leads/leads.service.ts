@@ -248,9 +248,10 @@ export class LeadsService {
 
     if (uniqueSavedLeadIds.length > 0) {
       await this.prisma.scrapeBatchLead.createMany({
-        data: uniqueSavedLeadIds.map((leadId) => ({
+        data: uniqueSavedLeadIds.map((leadId, position) => ({
           scrapeBatchId: batch.id,
           leadId,
+          position,
         })),
         skipDuplicates: true,
       });
@@ -377,10 +378,17 @@ export class LeadsService {
     const uniqueSavedLeadIds = [...new Set(savedLeadIds)];
 
     if (uniqueSavedLeadIds.length > 0) {
+      const nextPosition = await this.prisma.scrapeBatchLead.count({
+        where: {
+          scrapeBatchId: batch.id,
+        },
+      });
+
       await this.prisma.scrapeBatchLead.createMany({
-        data: uniqueSavedLeadIds.map((leadId) => ({
+        data: uniqueSavedLeadIds.map((leadId, offset) => ({
           scrapeBatchId: batch.id,
           leadId,
+          position: nextPosition + offset,
         })),
         skipDuplicates: true,
       });
@@ -461,9 +469,7 @@ export class LeadsService {
       select: {
         leadId: true,
       },
-      orderBy: {
-        createdAt: 'asc',
-      },
+      orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
     });
 
     return links.map((link) => link.leadId);
@@ -534,9 +540,7 @@ export class LeadsService {
           AND: leadFilters,
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
       include: {
         lead: true,
       },
